@@ -1,4 +1,5 @@
 import sys
+from datetime import datetime, timedelta
 import random
 import time
 
@@ -66,6 +67,27 @@ def get_speed(segment: str) -> int:
         base_speed = segment_speed["speed_mph_mean"]
         speed_variation = random.uniform(-1, 1) * segment_speed["speed_mph_stddev"]
         speed = base_speed + speed_variation
+
+        # Simulate some random variation in speed standard deviation.
+        segment_speed["speed_mph_stddev"] = segment_speed[
+            "speed_mph_stddev"
+        ] * random.uniform(0.9, 1.1)
+
+        # Update the timestamp.
+        timestamp = datetime.strptime(
+            segment_speed["utc_timestamp"], "%Y-%m-%dT%H:%M:%S.%fZ"
+        )
+        updated_timestamp = timestamp + timedelta(minutes=5)
+        segment_speed["utc_timestamp"] = updated_timestamp.strftime(
+            "%Y-%m-%dT%H:%M:%S.%fZ"
+        )
+
+        # Update the year, month, day, and hour based on the updated timestamp.
+        segment_speed["year"] = updated_timestamp.year
+        segment_speed["month"] = updated_timestamp.month
+        segment_speed["day"] = updated_timestamp.day
+        segment_speed["hour"] = updated_timestamp.hour
+
         speed_update = {
             "year": segment_speed["year"],
             "month": segment_speed["month"],

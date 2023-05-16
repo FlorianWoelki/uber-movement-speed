@@ -50,12 +50,13 @@ segment_speeds = {
 }
 
 
-def get_speed(segment: str) -> int:
+def get_speed(segment: str, time_interval: float) -> int:
     """
-    Simulates the speed for a given street segment.
+    Simulates the speed and timestamp for a given street segment.
 
     Args:
         segment_id (str): The ID of the street segment.
+        time_interval (float): The time interval between speed updates in seconds.
 
     Returns:
         dict or None: A dictionary containing speed information for the segment,
@@ -77,7 +78,7 @@ def get_speed(segment: str) -> int:
         timestamp = datetime.strptime(
             segment_speed["utc_timestamp"], "%Y-%m-%dT%H:%M:%S.%fZ"
         )
-        updated_timestamp = timestamp + timedelta(minutes=5)
+        updated_timestamp = timestamp + timedelta(seconds=time_interval)
         segment_speed["utc_timestamp"] = updated_timestamp.strftime(
             "%Y-%m-%dT%H:%M:%S.%fZ"
         )
@@ -117,7 +118,7 @@ def send_speed_updates(time_interval: float) -> None:
     """
     while True:
         for segment, _ in segment_speeds.items():
-            speed_update = get_speed(segment)
+            speed_update = get_speed(segment, time_interval)
             if speed_update is not None:
                 print(speed_update)
             else:

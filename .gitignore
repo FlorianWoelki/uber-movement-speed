@@ -154,3 +154,6 @@ cython_debug/
 
 # Docker
 volume
+
+# AWS
+key.csv

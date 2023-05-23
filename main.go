@@ -17,10 +17,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
-func GetIntPointer(i int32) *int32 {
-	return &i
-}
-
 func main() {
 	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
 		if service == s3.ServiceID {
@@ -88,8 +84,8 @@ func main() {
 		Handler:      aws.String("main"),
 		Runtime:      lambdaTypes.RuntimeGo1x,
 		Role:         aws.String("arn:aws:iam::123456789012:role/lambda-role"),
-		Timeout:      GetIntPointer(60),
-		MemorySize:   GetIntPointer(128),
+		Timeout:      aws.Int32(60),
+		MemorySize:   aws.Int32(128),
 		Publish:      true,
 		Environment:  &lambdaTypes.Environment{},
 	})

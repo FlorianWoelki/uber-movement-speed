@@ -7,6 +7,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.18.0
 	github.com/aws/aws-sdk-go-v2/config v1.18.25
 	github.com/aws/aws-sdk-go-v2/service/apigateway v1.16.11
+	github.com/aws/aws-sdk-go-v2/service/kinesis v1.17.12
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.34.1
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.33.1
 )

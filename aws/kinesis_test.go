@@ -48,9 +48,47 @@ func TestKinesis_Create(t *testing.T) {
 }
 
 func TestKinesis_Delete(t *testing.T) {
+	mockClient := &mockKinesisClient{
+		deleteStreamFunc: func(ctx context.Context, input *kinesis.DeleteStreamInput, opts ...func(*kinesis.Options)) (*kinesis.DeleteStreamOutput, error) {
+			if aws.ToString(input.StreamName) != "test-stream" {
+				return nil, errors.New("unexpected stream name")
+			}
+			return &kinesis.DeleteStreamOutput{}, nil
+		},
+	}
 
+	kinesisClient := &Kinesis{
+		client: mockClient,
+	}
+
+	err := kinesisClient.Delete("test-stream")
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
 }
 
 func TestKinesis_PutRecord(t *testing.T) {
+	mockClient := &mockKinesisClient{
+		putRecordFunc: func(ctx context.Context, input *kinesis.PutRecordInput, opts ...func(*kinesis.Options)) (*kinesis.PutRecordOutput, error) {
+			if aws.ToString(input.StreamName) != "test-stream" {
+				return nil, errors.New("unexpected stream name")
+			}
+			if aws.ToString(input.PartitionKey) != "test-key" {
+				return nil, errors.New("unexpected partition key")
+			}
+			if string(input.Data) != "test-data" {
+				return nil, errors.New("unexpected data")
+			}
+			return &kinesis.PutRecordOutput{}, nil
+		},
+	}
 
+	kinesisClient := &Kinesis{
+		client: mockClient,
+	}
+
+	err := kinesisClient.PutRecord("test-stream", "test-key", []byte("test-data"))
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
 }

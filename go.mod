@@ -11,7 +11,10 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.19.7
 	github.com/aws/aws-sdk-go-v2/service/kinesis v1.17.12
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.34.1
+	github.com/aws/aws-sdk-go-v2/service/rds v1.44.1
+	github.com/aws/aws-sdk-go-v2/service/rdsdata v1.13.10
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.33.1
+	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.19.8
 )
 
 require (

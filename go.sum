@@ -38,8 +38,14 @@ github.com/aws/aws-sdk-go-v2/service/kinesis v1.17.12 h1:Xw1u2pxSAI9giCqYamjNZjF
 github.com/aws/aws-sdk-go-v2/service/kinesis v1.17.12/go.mod h1:DDgzScy4XhYf4xgHP7xVNP3jjwMwMegzusy8awGN7YU=
 github.com/aws/aws-sdk-go-v2/service/lambda v1.34.1 h1:1Q4cSbM9p1aLhs4GKuvyyj46YwJ/E0/2kubFViF4NtA=
 github.com/aws/aws-sdk-go-v2/service/lambda v1.34.1/go.mod h1:i23nHcGEyswthctBfhEO1agGpM5Uyh83aSmSB6DmdCk=
+github.com/aws/aws-sdk-go-v2/service/rds v1.44.1 h1:9nhtGFhgKBBqcsbHXCVxrFKZgb4EmVF30hG3s2WEdD8=
+github.com/aws/aws-sdk-go-v2/service/rds v1.44.1/go.mod h1:rS6T0DrjdZ5LDr8ZC/J9iZdD1oSbie5reWWzqv5zLOw=
+github.com/aws/aws-sdk-go-v2/service/rdsdata v1.13.10 h1:CVDI58gLqknK9VAcLGRQ4yFTbeAlxBW79lmmwtsuqnA=
+github.com/aws/aws-sdk-go-v2/service/rdsdata v1.13.10/go.mod h1:+ltYPX4ZVYtfHldjDKVYf7lG0uY/lGWxnY/J6OQ4+NY=
 github.com/aws/aws-sdk-go-v2/service/s3 v1.33.1 h1:O+9nAy9Bb6bJFTpeNFtd9UfHbgxO1o4ZDAM9rQp5NsY=
 github.com/aws/aws-sdk-go-v2/service/s3 v1.33.1/go.mod h1:J9kLNzEiHSeGMyN7238EjJmBpCniVzFda75Gxl/NqB8=
+github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.19.8 h1:eB91eEYUlh8+O2dXr189W8GJJd+/T8N/c5HocH2KzVo=
+github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.19.8/go.mod h1:3ARttS6G6U3auEdKfaN4GlnfS9UxYE9nqub1+0YGycA=
 github.com/aws/aws-sdk-go-v2/service/sso v1.12.10 h1:UBQjaMTCKwyUYwiVnUt6toEJwGXsLBI6al083tpjJzY=
 github.com/aws/aws-sdk-go-v2/service/sso v1.12.10/go.mod h1:ouy2P4z6sJN70fR3ka3wD3Ro3KezSxU6eKGQI2+2fjI=
 github.com/aws/aws-sdk-go-v2/service/ssooidc v1.14.10 h1:PkHIIJs8qvq0e5QybnZoG1K/9QTrLr9OsqCIo59jOBA=

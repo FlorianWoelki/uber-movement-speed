@@ -10,11 +10,16 @@ import (
 )
 
 type mockAurora struct {
-	createDBClusterFn func(context.Context, *rds.CreateDBClusterInput, ...func(*rds.Options)) (*rds.CreateDBClusterOutput, error)
+	createDBClusterFn    func(context.Context, *rds.CreateDBClusterInput, ...func(*rds.Options)) (*rds.CreateDBClusterOutput, error)
+	describeDBClustersFn func(context.Context, *rds.DescribeDBClustersInput, ...func(*rds.Options)) (*rds.DescribeDBClustersOutput, error)
 }
 
 func (m *mockAurora) CreateDBCluster(ctx context.Context, params *rds.CreateDBClusterInput, optFns ...func(*rds.Options)) (*rds.CreateDBClusterOutput, error) {
 	return m.createDBClusterFn(ctx, params, optFns...)
+}
+
+func (m *mockAurora) DescribeDBClusters(ctx context.Context, params *rds.DescribeDBClustersInput, optFns ...func(*rds.Options)) (*rds.DescribeDBClustersOutput, error) {
+	return m.describeDBClustersFn(ctx, params, optFns...)
 }
 
 type mockRDSData struct {
@@ -58,21 +63,9 @@ func TestAurora_CreateDBCluster(t *testing.T) {
 		secretsManagerClient: mockSecretsManager,
 	}
 
-	_, err := aurora.CreateDBCluster("identifier", "databaseName", "username", "password")
+	_, _, err := aurora.CreateDBCluster("identifier", "databaseName", "username", "password")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
-	}
-
-	if aurora.cluster == nil {
-		t.Errorf("expected cluster to be set, got: %v", aurora.cluster)
-	}
-
-	if aurora.clusterName != "databaseName" {
-		t.Errorf("expected clusterName to be %s, got: %v", "databaseName", aurora.clusterName)
-	}
-
-	if aurora.secret == nil {
-		t.Errorf("expected secret to be set, got: %v", aurora.cluster)
 	}
 }
 
@@ -101,12 +94,12 @@ func TestAurora_ExecuteStatement(t *testing.T) {
 		secretsManagerClient: mockSecretsManager,
 	}
 
-	_, err := aurora.CreateDBCluster("identifier", "databaseName", "username", "password")
+	_, _, err := aurora.CreateDBCluster("identifier", "databaseName", "username", "password")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	err = aurora.ExecuteStatement("sql")
+	err = aurora.ExecuteStatement("databaseName", "clusterArn", "secretArn", "sql")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

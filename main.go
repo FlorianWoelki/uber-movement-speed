@@ -36,7 +36,21 @@ func main() {
 	}
 
 	aurora := awsService.NewAurora(cfg)
-	_, err = aurora.CreateDBCluster("test", "test", "test", "test")
+
+	// _, secret, err := aurora.CreateDBCluster("db1", "test", "test", "test")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// fmt.Println(aws.ToString(secret.ARN))
+
+	cluster, err := aurora.GetDBCluster("db1")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	clusterArn := aws.ToString(cluster.DBClusterArn)
+	secretArn := "arn:aws:secretsmanager:us-east-1:000000000000:secret:test-abQbyQ"
+	err = aurora.ExecuteStatement("test", clusterArn, secretArn, "SELECT 123")
 	if err != nil {
 		log.Fatal(err)
 	}

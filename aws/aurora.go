@@ -2,16 +2,17 @@ package aws
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/rds"
+	"github.com/aws/aws-sdk-go-v2/service/rds/types"
 	"github.com/aws/aws-sdk-go-v2/service/rdsdata"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 )
 
 type auroraAPI interface {
 	CreateDBCluster(ctx context.Context, params *rds.CreateDBClusterInput, optFns ...func(*rds.Options)) (*rds.CreateDBClusterOutput, error)
+	DescribeDBClusters(ctx context.Context, params *rds.DescribeDBClustersInput, optFns ...func(*rds.Options)) (*rds.DescribeDBClustersOutput, error)
 }
 
 type rdsDataAPI interface {
@@ -26,9 +27,6 @@ type Aurora struct {
 	rdsClient            auroraAPI
 	rdsDataClient        rdsDataAPI
 	secretsManagerClient secretsManagerAPI
-	cluster              *rds.CreateDBClusterOutput
-	clusterName          string
-	secret               *secretsmanager.CreateSecretOutput
 }
 
 func NewAurora(config aws.Config) *Aurora {
@@ -39,18 +37,17 @@ func NewAurora(config aws.Config) *Aurora {
 	}
 }
 
-func (a *Aurora) CreateDBCluster(identifier, databaseName, username, password string) (*rds.CreateDBClusterOutput, error) {
+func (a *Aurora) CreateDBCluster(identifier, databaseName, username, password string) (*rds.CreateDBClusterOutput, *secretsmanager.CreateSecretOutput, error) {
 	// Creates the database cluster.
 	cluster, err := a.rdsClient.CreateDBCluster(context.TODO(), &rds.CreateDBClusterInput{
 		DBClusterIdentifier: aws.String(identifier),
 		Engine:              aws.String("aurora-postgresql"),
 		DatabaseName:        aws.String(databaseName),
+		SourceRegion:        aws.String("us-east-1"),
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	a.cluster = cluster
-	a.clusterName = databaseName
 
 	// Creates the secret for the database cluster.
 	secret, err := a.secretsManagerClient.CreateSecret(context.TODO(), &secretsmanager.CreateSecretInput{
@@ -58,20 +55,32 @@ func (a *Aurora) CreateDBCluster(identifier, databaseName, username, password st
 		SecretString: aws.String(password),
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	a.secret = secret
 
-	fmt.Println(cluster.DBCluster)
-	fmt.Println(secret)
-	return cluster, nil
+	return cluster, secret, nil
 }
 
-func (a *Aurora) ExecuteStatement(sql string) error {
+func (a *Aurora) GetDBCluster(clusterIdentifier string) (*types.DBCluster, error) {
+	clusters, err := a.rdsClient.DescribeDBClusters(context.TODO(), &rds.DescribeDBClustersInput{
+		DBClusterIdentifier: aws.String(clusterIdentifier),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(clusters.DBClusters) == 0 {
+		return nil, nil
+	}
+
+	return &clusters.DBClusters[0], nil
+}
+
+func (a *Aurora) ExecuteStatement(databaseName, clusterArn, secretArn, sql string) error {
 	_, err := a.rdsDataClient.ExecuteStatement(context.TODO(), &rdsdata.ExecuteStatementInput{
-		Database:              aws.String(a.clusterName),
-		ResourceArn:           a.cluster.DBCluster.DBClusterArn,
-		SecretArn:             a.secret.ARN,
+		Database:              aws.String(databaseName),
+		ResourceArn:           aws.String(clusterArn),
+		SecretArn:             aws.String(secretArn),
 		IncludeResultMetadata: true,
 		Sql:                   aws.String(sql),
 	})

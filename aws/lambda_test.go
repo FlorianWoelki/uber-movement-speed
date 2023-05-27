@@ -47,6 +47,28 @@ func TestLambda_CreateGo(t *testing.T) {
 	}
 }
 
+func TestLambda_CreateNode(t *testing.T) {
+	mockClient := &mockLambdaClient{
+		createFunctionFunc: func(ctx context.Context, input *lambda.CreateFunctionInput, opts ...func(*lambda.Options)) (*lambda.CreateFunctionOutput, error) {
+			if *input.FunctionName != "test-function" {
+				t.Errorf("unexpected function name: %s", *input.FunctionName)
+			}
+			return &lambda.CreateFunctionOutput{
+				FunctionArn: input.FunctionName,
+			}, nil
+		},
+	}
+
+	lambdaClient := &Lambda{
+		client: mockClient,
+	}
+
+	_, err := lambdaClient.CreateNode("test-function", "test-bucket", "test-key")
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
 func TestLambda_Delete(t *testing.T) {
 	mockClient := &mockLambdaClient{
 		deleteFunctionFunc: func(ctx context.Context, input *lambda.DeleteFunctionInput, opts ...func(*lambda.Options)) (*lambda.DeleteFunctionOutput, error) {

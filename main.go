@@ -50,7 +50,7 @@ func main() {
 	}
 
 	// Loads the lambda zip file.
-	file, err := os.Open("services/kinesis_data_forwarder/kinesis_data_forwarder.zip")
+	file, err := os.Open("services/preprocessing/preprocessing.zip")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -61,13 +61,13 @@ func main() {
 	}
 
 	// Uploads the lambda zip file to the S3 bucket.
-	err = s3.PutObject("lambda-bucket", "kinesis_data_forwarder.zip", zipFileBytes)
+	err = s3.PutObject("lambda-bucket", "preprocessing.zip", zipFileBytes)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Creates the lambda function.
-	kinesisDataForwarderArn, err := lambda.CreateGo("KinesisDataForwarder", "lambda-bucket", "kinesis_data_forwarder.zip")
+	kinesisDataForwarderARN, err := lambda.CreateGo("Preprocessing", "lambda-bucket", "preprocessing.zip")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -75,6 +75,18 @@ func main() {
 	// Creates the kinesis stream.
 	streamName := "my-kinesis-stream"
 	err = kinesis.Create(streamName)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Gets the ARN from the kinesis stream.
+	streamARN, err := kinesis.GetARN(streamName)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Creates the lambda event source mapping.
+	err = lambda.BindToService("KinesisDataForwarder", streamARN)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -90,7 +102,7 @@ func main() {
 	err = apiGateway.CreateEndpoint(apiGatewayId, awsService.EndpointOptions{
 		Path:            "kinesis",
 		Method:          "POST",
-		Uri:             fmt.Sprintf("arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/%s/invocations", kinesisDataForwarderArn),
+		Uri:             fmt.Sprintf("arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/%s/invocations", kinesisDataForwarderARN),
 		IntegrationType: "AWS_PROXY",
 	})
 	if err != nil {

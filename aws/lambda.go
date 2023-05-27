@@ -51,6 +51,31 @@ func (l *Lambda) CreateGo(name, bucketName, bucketObjectKey string) (string, err
 	return aws.ToString(createOutput.FunctionArn), nil
 }
 
+// CreateNode creates a Lambda function from a Node.js binary. The binary must be zipped
+// and uploaded to S3. The bucketName and bucketKey parameters are the name of the bucket.
+// It will return the ARN of the Lambda function and an error if there is one.
+func (l *Lambda) CreateNode(name, bucketName, bucketObjecyKey string) (string, error) {
+	createOutput, err := l.client.CreateFunction(context.TODO(), &lambda.CreateFunctionInput{
+		Code: &types.FunctionCode{
+			S3Bucket: aws.String(bucketName),
+			S3Key:    aws.String(bucketObjecyKey),
+		},
+		FunctionName: aws.String(name),
+		Handler:      aws.String("index.handler"),
+		Runtime:      types.RuntimeNodejs16x,
+		Role:         aws.String("arn:aws:iam::123456789012:role/lambda-role"),
+		Timeout:      aws.Int32(60),
+		MemorySize:   aws.Int32(128),
+		Publish:      true,
+		Environment:  &types.Environment{},
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return aws.ToString(createOutput.FunctionArn), nil
+}
+
 // Delete deletes a Lambda function with the given name.
 func (l *Lambda) Delete(name string) error {
 	_, err := l.client.DeleteFunction(context.TODO(), &lambda.DeleteFunctionInput{

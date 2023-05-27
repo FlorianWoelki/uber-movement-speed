@@ -64,6 +64,10 @@ type EndpointOptions struct {
 	Method string
 	// Uri is the URI of the endpoint.
 	Uri string
+	// IntegrationType is the type of the integration.
+	IntegrationType types.IntegrationType
+	// RequestParameters are the request parameters of the endpoint.
+	RequestParameters map[string]string
 }
 
 // CreateEndpoint creates an endpoint for the given API Gateway ID with the given options.
@@ -100,10 +104,9 @@ func (a *APIGateway) CreateEndpoint(id string, options EndpointOptions) error {
 		RestApiId:             aws.String(id),
 		ResourceId:            aws.String(resourceId),
 		HttpMethod:            aws.String(options.Method),
-		Type:                  types.IntegrationTypeHttpProxy,
+		Type:                  options.IntegrationType,
 		IntegrationHttpMethod: aws.String("POST"),
 		Uri:                   aws.String(options.Uri),
-		PassthroughBehavior:   aws.String("WHEN_NO_MATCH"),
 	})
 	if err != nil {
 		return err

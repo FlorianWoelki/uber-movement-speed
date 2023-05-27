@@ -2,7 +2,10 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"io/ioutil"
 	"log"
+	"os"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -35,7 +38,68 @@ func main() {
 		log.Fatal(err)
 	}
 
-	aurora := awsService.NewAurora(cfg)
+	kinesis := awsService.NewKinesis(cfg)
+	lambda := awsService.NewLambda(cfg)
+	s3 := awsService.NewS3(cfg)
+	apiGateway := awsService.NewAPIGateway(cfg)
+
+	// Creates the lambda S3 bucket.
+	err = s3.CreateBucket("lambda-bucket")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Loads the lambda zip file.
+	file, err := os.Open("services/kinesis_data_forwarder/kinesis_data_forwarder.zip")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+	zipFileBytes, err := ioutil.ReadAll(file)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Uploads the lambda zip file to the S3 bucket.
+	err = s3.PutObject("lambda-bucket", "kinesis_data_forwarder.zip", zipFileBytes)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Creates the lambda function.
+	kinesisDataForwarderArn, err := lambda.CreateGo("KinesisDataForwarder", "lambda-bucket", "kinesis_data_forwarder.zip")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Creates the kinesis stream.
+	streamName := "my-kinesis-stream"
+	err = kinesis.Create(streamName)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Creates the API Gateway.
+	apiName := "my-kinesis-api"
+	apiGatewayId, err := apiGateway.Create(apiName)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Creates the API Gateway endpoint for the kinesis data forwarder lambda function.
+	err = apiGateway.CreateEndpoint(apiGatewayId, awsService.EndpointOptions{
+		Path:            "kinesis",
+		Method:          "POST",
+		Uri:             fmt.Sprintf("arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/%s/invocations", kinesisDataForwarderArn),
+		IntegrationType: "AWS_PROXY",
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(apiGatewayId)
+
+	// aurora := awsService.NewAurora(cfg)
 
 	// _, secret, err := aurora.CreateDBCluster("db1", "test", "test", "test")
 	// if err != nil {
@@ -43,17 +107,17 @@ func main() {
 	// }
 	// fmt.Println(aws.ToString(secret.ARN))
 
-	cluster, err := aurora.GetDBCluster("db1")
-	if err != nil {
-		log.Fatal(err)
-	}
+	// cluster, err := aurora.GetDBCluster("db1")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	clusterArn := aws.ToString(cluster.DBClusterArn)
-	secretArn := "arn:aws:secretsmanager:us-east-1:000000000000:secret:test-abQbyQ"
-	err = aurora.ExecuteStatement("test", clusterArn, secretArn, "SELECT 123")
-	if err != nil {
-		log.Fatal(err)
-	}
+	// clusterArn := aws.ToString(cluster.DBClusterArn)
+	// secretArn := "arn:aws:secretsmanager:us-east-1:000000000000:secret:test-abQbyQ"
+	// err = aurora.ExecuteStatement("test", clusterArn, secretArn, "SELECT 123")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
 	// apiGatewayClient := apigateway.NewFromConfig(cfg)
 	// s3client := s3.NewFromConfig(cfg)

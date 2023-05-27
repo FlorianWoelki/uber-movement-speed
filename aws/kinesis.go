@@ -11,6 +11,7 @@ type kinesisAPI interface {
 	CreateStream(ctx context.Context, params *kinesis.CreateStreamInput, optFns ...func(*kinesis.Options)) (*kinesis.CreateStreamOutput, error)
 	DeleteStream(ctx context.Context, params *kinesis.DeleteStreamInput, optFns ...func(*kinesis.Options)) (*kinesis.DeleteStreamOutput, error)
 	PutRecord(ctx context.Context, params *kinesis.PutRecordInput, optFns ...func(*kinesis.Options)) (*kinesis.PutRecordOutput, error)
+	DescribeStream(ctx context.Context, params *kinesis.DescribeStreamInput, optFns ...func(*kinesis.Options)) (*kinesis.DescribeStreamOutput, error)
 }
 
 // Kinesis is a wrapper around the AWS Kinesis client.
@@ -36,6 +37,18 @@ func (k *Kinesis) Create(name string) error {
 	}
 
 	return nil
+}
+
+// GetARN returns the ARN of a Kinesis stream with the given name.
+func (k *Kinesis) GetARN(name string) (string, error) {
+	stream, err := k.client.DescribeStream(context.TODO(), &kinesis.DescribeStreamInput{
+		StreamName: aws.String(name),
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return aws.ToString(stream.StreamDescription.StreamARN), nil
 }
 
 // Delete deletes a Kinesis stream with the given name.

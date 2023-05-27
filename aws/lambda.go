@@ -8,14 +8,14 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/lambda/types"
 )
 
-type LambdaAPI interface {
+type lambdaAPI interface {
 	CreateFunction(ctx context.Context, params *lambda.CreateFunctionInput, optFns ...func(*lambda.Options)) (*lambda.CreateFunctionOutput, error)
 	DeleteFunction(ctx context.Context, params *lambda.DeleteFunctionInput, optFns ...func(*lambda.Options)) (*lambda.DeleteFunctionOutput, error)
 }
 
 // Lambda is a wrapper around the AWS Lambda client.
 type Lambda struct {
-	client LambdaAPI
+	client lambdaAPI
 }
 
 // NewLambda creates a new Lambda client with the given configuration.

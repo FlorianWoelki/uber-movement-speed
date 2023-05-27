@@ -7,7 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/kinesis"
 )
 
-type KinesisAPI interface {
+type kinesisAPI interface {
 	CreateStream(ctx context.Context, params *kinesis.CreateStreamInput, optFns ...func(*kinesis.Options)) (*kinesis.CreateStreamOutput, error)
 	DeleteStream(ctx context.Context, params *kinesis.DeleteStreamInput, optFns ...func(*kinesis.Options)) (*kinesis.DeleteStreamOutput, error)
 	PutRecord(ctx context.Context, params *kinesis.PutRecordInput, optFns ...func(*kinesis.Options)) (*kinesis.PutRecordOutput, error)
@@ -15,7 +15,7 @@ type KinesisAPI interface {
 
 // Kinesis is a wrapper around the AWS Kinesis client.
 type Kinesis struct {
-	client KinesisAPI
+	client kinesisAPI
 }
 
 // NewKinesis creates a new Kinesis client with the given configuration.

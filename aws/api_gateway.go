@@ -9,7 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/apigateway/types"
 )
 
-type APIGatewayAPI interface {
+type apiGatewayAPI interface {
 	CreateRestApi(ctx context.Context, params *apigateway.CreateRestApiInput, optFns ...func(*apigateway.Options)) (*apigateway.CreateRestApiOutput, error)
 	DeleteRestApi(ctx context.Context, params *apigateway.DeleteRestApiInput, optFns ...func(*apigateway.Options)) (*apigateway.DeleteRestApiOutput, error)
 	GetResources(ctx context.Context, params *apigateway.GetResourcesInput, optFns ...func(*apigateway.Options)) (*apigateway.GetResourcesOutput, error)
@@ -19,16 +19,20 @@ type APIGatewayAPI interface {
 	CreateDeployment(ctx context.Context, params *apigateway.CreateDeploymentInput, optFns ...func(*apigateway.Options)) (*apigateway.CreateDeploymentOutput, error)
 }
 
+// APIGateway is a wrapper around the AWS API Gateway client.
 type APIGateway struct {
-	client APIGatewayAPI
+	client apiGatewayAPI
 }
 
+// NewAPIGateway creates a new API Gateway client with the given configuration.
 func NewAPIGateway(config aws.Config) *APIGateway {
 	return &APIGateway{
 		client: apigateway.NewFromConfig(config),
 	}
 }
 
+// Create creates an API Gateway with the given name and returns the ID of the API Gateway
+// that was created.
 func (a *APIGateway) Create(name string) (string, error) {
 	createOutput, err := a.client.CreateRestApi(context.TODO(), &apigateway.CreateRestApiInput{
 		Name: aws.String(name),
@@ -40,6 +44,7 @@ func (a *APIGateway) Create(name string) (string, error) {
 	return aws.ToString(createOutput.Id), nil
 }
 
+// Delete deletes the API Gateway with the given ID.
 func (a *APIGateway) Delete(id string) error {
 	_, err := a.client.DeleteRestApi(context.TODO(), &apigateway.DeleteRestApiInput{
 		RestApiId: aws.String(id),
@@ -51,6 +56,7 @@ func (a *APIGateway) Delete(id string) error {
 	return nil
 }
 
+// EndpointOptions are the options for creating an endpoint.
 type EndpointOptions struct {
 	// Path is the path of the resource where the endpoint will be created.
 	Path string

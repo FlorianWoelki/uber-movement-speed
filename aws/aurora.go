@@ -23,12 +23,14 @@ type secretsManagerAPI interface {
 	CreateSecret(ctx context.Context, params *secretsmanager.CreateSecretInput, optFns ...func(*secretsmanager.Options)) (*secretsmanager.CreateSecretOutput, error)
 }
 
+// Aurora is a wrapper around the AWS Aurora client.
 type Aurora struct {
 	rdsClient            auroraAPI
 	rdsDataClient        rdsDataAPI
 	secretsManagerClient secretsManagerAPI
 }
 
+// NewAurora creates a new Aurora client with the given configuration.
 func NewAurora(config aws.Config) *Aurora {
 	return &Aurora{
 		rdsClient:            rds.NewFromConfig(config),
@@ -37,6 +39,9 @@ func NewAurora(config aws.Config) *Aurora {
 	}
 }
 
+// CreateDBCluster creates a new Aurora database cluster with the given identifier and
+// database name. It also creates a secret for the database cluster with the given
+// username and password.
 func (a *Aurora) CreateDBCluster(identifier, databaseName, username, password string) (*rds.CreateDBClusterOutput, *secretsmanager.CreateSecretOutput, error) {
 	// Creates the database cluster.
 	cluster, err := a.rdsClient.CreateDBCluster(context.TODO(), &rds.CreateDBClusterInput{
@@ -61,6 +66,7 @@ func (a *Aurora) CreateDBCluster(identifier, databaseName, username, password st
 	return cluster, secret, nil
 }
 
+// GetDBCluster returns the database cluster with the given identifier.
 func (a *Aurora) GetDBCluster(clusterIdentifier string) (*types.DBCluster, error) {
 	clusters, err := a.rdsClient.DescribeDBClusters(context.TODO(), &rds.DescribeDBClustersInput{
 		DBClusterIdentifier: aws.String(clusterIdentifier),
@@ -76,6 +82,7 @@ func (a *Aurora) GetDBCluster(clusterIdentifier string) (*types.DBCluster, error
 	return &clusters.DBClusters[0], nil
 }
 
+// ExecuteStatement executes the given SQL statement on the given database cluster.
 func (a *Aurora) ExecuteStatement(databaseName, clusterArn, secretArn, sql string) error {
 	_, err := a.rdsDataClient.ExecuteStatement(context.TODO(), &rdsdata.ExecuteStatementInput{
 		Database:              aws.String(databaseName),

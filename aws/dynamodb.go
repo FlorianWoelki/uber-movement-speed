@@ -8,7 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
-type DynamoDBAPI interface {
+type dynamoDBAPI interface {
 	CreateTable(ctx context.Context, params *dynamodb.CreateTableInput, optFns ...func(*dynamodb.Options)) (*dynamodb.CreateTableOutput, error)
 	DeleteTable(ctx context.Context, params *dynamodb.DeleteTableInput, optFns ...func(*dynamodb.Options)) (*dynamodb.DeleteTableOutput, error)
 	PutItem(ctx context.Context, params *dynamodb.PutItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.PutItemOutput, error)
@@ -17,16 +17,19 @@ type DynamoDBAPI interface {
 	DescribeTable(ctx context.Context, params *dynamodb.DescribeTableInput, optFns ...func(*dynamodb.Options)) (*dynamodb.DescribeTableOutput, error)
 }
 
+// DynamoDB is a wrapper around the AWS DynamoDB client.
 type DynamoDB struct {
-	client DynamoDBAPI
+	client dynamoDBAPI
 }
 
+// NewDynamoDB creates a new DynamoDB client with the given configuration.
 func NewDynamoDB(config aws.Config) *DynamoDB {
 	return &DynamoDB{
 		client: dynamodb.NewFromConfig(config),
 	}
 }
 
+// CreateTable creates a DynamoDB table with the given name.
 func (d *DynamoDB) CreateTable(name string) error {
 	_, err := d.client.CreateTable(context.TODO(), &dynamodb.CreateTableInput{
 		TableName: aws.String(name),
@@ -51,6 +54,8 @@ func (d *DynamoDB) CreateTable(name string) error {
 	return nil
 }
 
+// UpdateReplicas updates the DynamoDB table with the given name to have replicas in
+// `eu-central-1` and `us-west-1`.
 func (d *DynamoDB) UpdateReplicas(name string) error {
 	_, err := d.client.UpdateTable(context.TODO(), &dynamodb.UpdateTableInput{
 		TableName: aws.String(name),
@@ -74,6 +79,7 @@ func (d *DynamoDB) UpdateReplicas(name string) error {
 	return nil
 }
 
+// DeleteTable deletes the DynamoDB table with the given name.
 func (d *DynamoDB) DeleteTable(name string) error {
 	_, err := d.client.DeleteTable(context.TODO(), &dynamodb.DeleteTableInput{
 		TableName: aws.String(name),
@@ -85,12 +91,14 @@ func (d *DynamoDB) DeleteTable(name string) error {
 	return nil
 }
 
+// DescribeTable describes the DynamoDB table with the given name.
 func (d *DynamoDB) DescribeTable(name string) (*dynamodb.DescribeTableOutput, error) {
 	return d.client.DescribeTable(context.TODO(), &dynamodb.DescribeTableInput{
 		TableName: aws.String(name),
 	})
 }
 
+// PutItem puts an item into the DynamoDB table with the given name and attributes.
 func (d *DynamoDB) PutItem(name string, item map[string]types.AttributeValue) error {
 	_, err := d.client.PutItem(context.TODO(), &dynamodb.PutItemInput{
 		TableName: aws.String(name),
@@ -103,6 +111,7 @@ func (d *DynamoDB) PutItem(name string, item map[string]types.AttributeValue) er
 	return nil
 }
 
+// DeleteItem deletes an item from the DynamoDB table with the given name and key.
 func (d *DynamoDB) DeleteItem(name string, key map[string]types.AttributeValue) error {
 	_, err := d.client.DeleteItem(context.TODO(), &dynamodb.DeleteItemInput{
 		TableName: aws.String(name),

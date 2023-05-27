@@ -11,6 +11,7 @@ import (
 type lambdaAPI interface {
 	CreateFunction(ctx context.Context, params *lambda.CreateFunctionInput, optFns ...func(*lambda.Options)) (*lambda.CreateFunctionOutput, error)
 	DeleteFunction(ctx context.Context, params *lambda.DeleteFunctionInput, optFns ...func(*lambda.Options)) (*lambda.DeleteFunctionOutput, error)
+	CreateEventSourceMapping(ctx context.Context, params *lambda.CreateEventSourceMappingInput, optFns ...func(*lambda.Options)) (*lambda.CreateEventSourceMappingOutput, error)
 }
 
 // Lambda is a wrapper around the AWS Lambda client.
@@ -54,6 +55,24 @@ func (l *Lambda) CreateGo(name, bucketName, bucketObjectKey string) (string, err
 func (l *Lambda) Delete(name string) error {
 	_, err := l.client.DeleteFunction(context.TODO(), &lambda.DeleteFunctionInput{
 		FunctionName: aws.String(name),
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// BindToService binds a Lambda function to an event source. This can be used to bind a
+// Lambda function to an SQS queue or an SNS topic. For instance, if you want to bind a
+// Lambda function to Kinesis, you would pass in the ARN of the Kinesis stream as the
+// eventSourceArn parameter.
+func (l *Lambda) BindToService(name, eventSourceArn string) error {
+	_, err := l.client.CreateEventSourceMapping(context.TODO(), &lambda.CreateEventSourceMappingInput{
+		FunctionName:     aws.String(name),
+		EventSourceArn:   aws.String(eventSourceArn),
+		BatchSize:        aws.Int32(100),
+		StartingPosition: types.EventSourcePositionLatest,
 	})
 	if err != nil {
 		return err

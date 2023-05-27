@@ -104,3 +104,42 @@ func TestAurora_ExecuteStatement(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 }
+
+func TestAurora_GetDBCluster(t *testing.T) {
+	mockClient := &mockAurora{
+		createDBClusterFn: func(ctx context.Context, params *rds.CreateDBClusterInput, optFns ...func(*rds.Options)) (*rds.CreateDBClusterOutput, error) {
+			return &rds.CreateDBClusterOutput{}, nil
+		},
+		describeDBClustersFn: func(ctx context.Context, params *rds.DescribeDBClustersInput, optFns ...func(*rds.Options)) (*rds.DescribeDBClustersOutput, error) {
+			return &rds.DescribeDBClustersOutput{}, nil
+		},
+	}
+
+	mockRDSDataClient := &mockRDSData{
+		executeStatementFn: func(ctx context.Context, params *rdsdata.ExecuteStatementInput, optFns ...func(*rdsdata.Options)) (*rdsdata.ExecuteStatementOutput, error) {
+			return &rdsdata.ExecuteStatementOutput{}, nil
+		},
+	}
+
+	mockSecretsManager := &mockSecretsManager{
+		createSecretFn: func(ctx context.Context, params *secretsmanager.CreateSecretInput, optFns ...func(*secretsmanager.Options)) (*secretsmanager.CreateSecretOutput, error) {
+			return &secretsmanager.CreateSecretOutput{}, nil
+		},
+	}
+
+	aurora := &Aurora{
+		rdsClient:            mockClient,
+		rdsDataClient:        mockRDSDataClient,
+		secretsManagerClient: mockSecretsManager,
+	}
+
+	_, _, err := aurora.CreateDBCluster("identifier", "databaseName", "username", "password")
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	_, err = aurora.GetDBCluster("identifier")
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+}

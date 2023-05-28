@@ -49,6 +49,13 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// Creates the S3 bucket for the raw data that is being sent from the `preprocessing`
+	// service.
+	err = s3.CreateBucket("raw-data")
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// Loads the lambda zip file.
 	file, err := os.Open("services/preprocessing/preprocessing.zip")
 	if err != nil {

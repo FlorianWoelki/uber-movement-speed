@@ -56,8 +56,31 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// Loads the python PySpark script.
+	file, err := os.Open("services/glue/raw_data_etl.py")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+	scriptFileBytes, err := ioutil.ReadAll(file)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Uploads the python PySpark script to the S3 bucket.
+	err = s3.PutObject("raw-data", "scripts/raw_data_etl.py", scriptFileBytes)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Creates the S3 bucket for the transformed data that is being sent from the glue job
+	err = s3.CreateBucket("transformed-data")
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// Loads the lambda zip file.
-	file, err := os.Open("services/preprocessing/preprocessing.zip")
+	file, err = os.Open("services/preprocessing/preprocessing.zip")
 	if err != nil {
 		log.Fatal(err)
 	}

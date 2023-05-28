@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -128,8 +129,19 @@ func flushBatch() {
 	}
 }
 
-// uploadToS3 uploads the given data to the S3 bucket as a CSV file.
+// uploadToS3 uploads the given data to the S3 bucket as a CSV file and partitions it by
+// the current time.
 func uploadToS3(data []Book) error {
+	// Gets the current time to construct the partition path.
+	currentTime := time.Now()
+	year := currentTime.Format("2006")
+	month := currentTime.Format("01")
+	day := currentTime.Format("02")
+
+	// Construct the partition path based on the timestamp.
+	partitionPath := fmt.Sprintf("year=%s/month=%s/day=%s/",
+		year, month, day)
+
 	log.Println("Uploading data to S3")
 	csvBuffer := new(bytes.Buffer)
 	writer := csv.NewWriter(csvBuffer)
@@ -148,7 +160,8 @@ func uploadToS3(data []Book) error {
 	writer.Flush()
 
 	key := fmt.Sprintf("batch-from-%s-to-%s.csv", data[0].Id, data[len(data)-1].Id)
-	err := s3Client.PutObject(s3BucketName, key, csvBuffer.Bytes())
+	keyWithPartition := partitionPath + key
+	err := s3Client.PutObject(s3BucketName, keyWithPartition, csvBuffer.Bytes())
 	if err != nil {
 		return err
 	}

@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -41,7 +40,8 @@ func main() {
 	kinesis := awsService.NewKinesis(cfg)
 	lambda := awsService.NewLambda(cfg)
 	s3 := awsService.NewS3(cfg)
-	apiGateway := awsService.NewAPIGateway(cfg)
+	dynamodb := awsService.NewDynamoDB(cfg)
+	// apiGateway := awsService.NewAPIGateway(cfg)
 
 	// Creates the lambda S3 bucket.
 	err = s3.CreateBucket("lambda-bucket")
@@ -67,7 +67,7 @@ func main() {
 	}
 
 	// Creates the lambda function.
-	kinesisDataForwarderARN, err := lambda.CreateGo("Preprocessing", "lambda-bucket", "preprocessing.zip")
+	_, err = lambda.CreateGo("Preprocessing", "lambda-bucket", "preprocessing.zip")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -86,30 +86,36 @@ func main() {
 	}
 
 	// Creates the lambda event source mapping.
-	err = lambda.BindToService("KinesisDataForwarder", streamARN)
+	err = lambda.BindToService("Preprocessing", streamARN)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Creates the API Gateway.
-	apiName := "my-kinesis-api"
-	apiGatewayId, err := apiGateway.Create(apiName)
+	// Create dynamodb table.
+	err = dynamodb.CreateTable("books")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Creates the API Gateway endpoint for the kinesis data forwarder lambda function.
-	err = apiGateway.CreateEndpoint(apiGatewayId, awsService.EndpointOptions{
-		Path:            "kinesis",
-		Method:          "POST",
-		Uri:             fmt.Sprintf("arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/%s/invocations", kinesisDataForwarderARN),
-		IntegrationType: "AWS_PROXY",
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
+	// // Creates the API Gateway.
+	// apiName := "my-kinesis-api"
+	// apiGatewayId, err := apiGateway.Create(apiName)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	fmt.Println(apiGatewayId)
+	// // Creates the API Gateway endpoint for the kinesis data forwarder lambda function.
+	// err = apiGateway.CreateEndpoint(apiGatewayId, awsService.EndpointOptions{
+	// 	Path:            "kinesis",
+	// 	Method:          "POST",
+	// 	Uri:             fmt.Sprintf("arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/%s/invocations", kinesisDataForwarderARN),
+	// 	IntegrationType: "AWS_PROXY",
+	// })
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	// fmt.Println(apiGatewayId)
 
 	// aurora := awsService.NewAurora(cfg)
 

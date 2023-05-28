@@ -29,7 +29,8 @@ func NewDynamoDB(config aws.Config) *DynamoDB {
 	}
 }
 
-// CreateTable creates a DynamoDB table with the given name.
+// CreateTable creates a DynamoDB table with the given name. This function assumes that
+// the table has a primary key called `id` of type `string`.
 func (d *DynamoDB) CreateTable(name string) error {
 	_, err := d.client.CreateTable(context.TODO(), &dynamodb.CreateTableInput{
 		TableName: aws.String(name),
@@ -99,9 +100,9 @@ func (d *DynamoDB) DescribeTable(name string) (*dynamodb.DescribeTableOutput, er
 }
 
 // PutItem puts an item into the DynamoDB table with the given name and attributes.
-func (d *DynamoDB) PutItem(name string, item map[string]types.AttributeValue) error {
+func (d *DynamoDB) PutItem(tableName string, item map[string]types.AttributeValue) error {
 	_, err := d.client.PutItem(context.TODO(), &dynamodb.PutItemInput{
-		TableName: aws.String(name),
+		TableName: aws.String(tableName),
 		Item:      item,
 	})
 	if err != nil {

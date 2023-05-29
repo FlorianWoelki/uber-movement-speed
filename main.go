@@ -41,6 +41,7 @@ func main() {
 	lambda := awsService.NewLambda(cfg)
 	s3 := awsService.NewS3(cfg)
 	dynamodb := awsService.NewDynamoDB(cfg)
+	glue := awsService.NewGlue(cfg)
 	// apiGateway := awsService.NewAPIGateway(cfg)
 
 	// Creates the lambda S3 bucket.
@@ -75,6 +76,12 @@ func main() {
 
 	// Creates the S3 bucket for the transformed data that is being sent from the glue job
 	err = s3.CreateBucket("transformed-data")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Creates the glue job.
+	err = glue.CreateJob("raw-data-etl", "s3://raw-data/scripts/raw_data_etl.py")
 	if err != nil {
 		log.Fatal(err)
 	}

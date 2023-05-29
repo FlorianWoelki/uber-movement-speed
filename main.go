@@ -108,6 +108,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	// TODO: Wait for lambda function to be created.
 
 	// Creates the kinesis stream.
 	streamName := "my-kinesis-stream"

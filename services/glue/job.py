@@ -5,31 +5,6 @@ import boto3
 endpoint_url = "http://localhost.localstack.cloud:4566"
 
 
-def create_glue_job(job_name: str, script_location: str):
-    """
-    Creates a glue job with the given name and script location.
-
-    Args:
-        job_name (str): The name of the glue job.
-        script_location (str): The location of the script to be executed by the glue job.
-
-    Returns:
-        str: The name of the glue job.
-    """
-    glue = boto3.client("glue", endpoint_url=endpoint_url)
-
-    response = glue.create_job(
-        Name=job_name,
-        Role="arn:aws:iam::000000000000:role/glue-role",
-        Command={
-            "Name": "pythonshell",
-            "ScriptLocation": script_location,
-        },
-    )
-
-    return response["Name"]
-
-
 def start_glue_job(job_name: str):
     """
     Starts a glue job with the given name.
@@ -47,9 +22,23 @@ def start_glue_job(job_name: str):
     return response["JobRunId"]
 
 
+def stop_glue_job(job_name: str, run_id: str):
+    """
+    Stops a glue job with the given name and run ID.
+
+    Args:
+        job_name (str): The name of the glue job.
+        run_id (str): The ID of the glue job run.
+    """
+    glue = boto3.client("glue", endpoint_url=endpoint_url)
+    glue.batch_stop_job_run(
+        JobName=job_name,
+        JobRunIds=[run_id],
+    )
+
+
 def main():
     job_name = "raw-data-etl"
-    script_location = "s3://raw-data/scripts/raw_data_etl.py"
 
     # Starts only a glue job.
     if len(sys.argv) == 2 and sys.argv[1] == "start":
@@ -69,10 +58,14 @@ def main():
         )
         return
 
-    # Creats and start the glue job.
-    create_glue_job(job_name, script_location)
-    job_run_id = start_glue_job(job_name)
-    print(f"Started Glue job run with ID: {job_run_id}")
+    # Stops only a glue job.
+    if len(sys.argv) == 3 and sys.argv[1] == "stop":
+        job_run_id = sys.argv[2]
+        stop_glue_job(job_name, job_run_id)
+        print(f"Stopped Glue job run with ID: {job_run_id}")
+        return
+
+    print(f"Usage: {sys.argv[0]} [start|stop]")
 
 
 if __name__ == "__main__":

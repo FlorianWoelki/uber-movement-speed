@@ -83,8 +83,8 @@ func (a *Aurora) GetDBCluster(clusterIdentifier string) (*types.DBCluster, error
 }
 
 // ExecuteStatement executes the given SQL statement on the given database cluster.
-func (a *Aurora) ExecuteStatement(databaseName, clusterArn, secretArn, sql string) error {
-	_, err := a.rdsDataClient.ExecuteStatement(context.TODO(), &rdsdata.ExecuteStatementInput{
+func (a *Aurora) ExecuteStatement(databaseName, clusterArn, secretArn, sql string) (*rdsdata.ExecuteStatementOutput, error) {
+	executeStatementOutput, err := a.rdsDataClient.ExecuteStatement(context.TODO(), &rdsdata.ExecuteStatementInput{
 		Database:              aws.String(databaseName),
 		ResourceArn:           aws.String(clusterArn),
 		SecretArn:             aws.String(secretArn),
@@ -92,8 +92,8 @@ func (a *Aurora) ExecuteStatement(databaseName, clusterArn, secretArn, sql strin
 		Sql:                   aws.String(sql),
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return executeStatementOutput, nil
 }

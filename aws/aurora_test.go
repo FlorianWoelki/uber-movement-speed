@@ -99,7 +99,7 @@ func TestAurora_ExecuteStatement(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	err = aurora.ExecuteStatement("databaseName", "clusterArn", "secretArn", "sql")
+	_, err = aurora.ExecuteStatement("databaseName", "clusterArn", "secretArn", "sql")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -13,6 +14,9 @@ import (
 )
 
 func main() {
+	log.Println("Starting setup...")
+	defer log.Println("Finished setup")
+
 	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
 		if service == s3.ServiceID {
 			return aws.Endpoint{
@@ -42,22 +46,63 @@ func main() {
 	s3 := awsService.NewS3(cfg)
 	dynamodb := awsService.NewDynamoDB(cfg)
 	glue := awsService.NewGlue(cfg)
+	aurora := awsService.NewAurora(cfg)
 	// apiGateway := awsService.NewAPIGateway(cfg)
 
+	// Creates the Aurora DB Cluster.
+	log.Println("Creating Aurora DB Cluster...")
+	// Changing `dbpass`, `db1`, or `test` requires a change in
+	// `services/glue/raw_data_etl.py` as well.
+	cluster, secret, err := aurora.CreateDBCluster("db1", "test", "dbpass", "test")
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println("Created Aurora DB Cluster")
+
+	clusterARN := aws.ToString(cluster.DBCluster.DBClusterArn)
+	secretARN := aws.ToString(secret.ARN)
+
+	status := cluster.DBCluster.Status
+	for aws.ToString(status) != "available" {
+		log.Println("Waiting for Aurora DB Cluster to be available...")
+		c, err := aurora.GetDBCluster("db1")
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		status = c.Status
+		time.Sleep(2 * time.Second)
+	}
+	log.Println("Aurora DB Cluster is available")
+
+	log.Println("Creating Aurora DB Cluster Endpoint...")
+	// Creates the table for the Aurora DB. Changing `books` requires a change in
+	// `services/glue/raw_data_etl.py` as well.
+	_, err = aurora.ExecuteStatement("test", clusterARN, secretARN, "CREATE TABLE books (id SERIAL PRIMARY KEY, title VARCHAR(100))")
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println("Created Aurora DB Cluster Endpoint")
+
 	// Creates the lambda S3 bucket.
+	log.Println("Creating S3 bucket for lambda...")
 	err = s3.CreateBucket("lambda-bucket")
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Println("Created S3 bucket for lambda")
 
 	// Creates the S3 bucket for the raw data that is being sent from the `preprocessing`
 	// service.
+	log.Println("Creating S3 bucket for raw data...")
 	err = s3.CreateBucket("raw-data")
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Println("Created S3 bucket for raw data")
 
 	// Loads the python PySpark script.
+	log.Println("Uploading PySpark script to `raw-data` S3 bucket...")
 	file, err := os.Open("services/glue/raw_data_etl.py")
 	if err != nil {
 		log.Fatal(err)
@@ -73,20 +118,26 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Println("Uploaded PySpark script to `raw-data` S3 bucket")
 
 	// Creates the S3 bucket for the transformed data that is being sent from the glue job
+	log.Println("Creating S3 bucket for transformed data...")
 	err = s3.CreateBucket("transformed-data")
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Println("Created S3 bucket for transformed data")
 
 	// Creates the glue job.
+	log.Println("Creating glue job...")
 	err = glue.CreateJob("raw-data-etl", "s3://raw-data/scripts/raw_data_etl.py")
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Println("Created glue job")
 
 	// Loads the lambda zip file.
+	log.Println("Uploading lambda zip file to S3 bucket...")
 	file, err = os.Open("services/preprocessing/preprocessing.zip")
 	if err != nil {
 		log.Fatal(err)
@@ -102,22 +153,28 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Println("Uploaded lambda zip file to S3 bucket")
 
 	// Creates the lambda function.
+	log.Println("Creating lambda function...")
 	_, err = lambda.CreateGo("Preprocessing", "lambda-bucket", "preprocessing.zip")
 	if err != nil {
 		log.Fatal(err)
 	}
 	// TODO: Wait for lambda function to be created.
+	log.Println("Created lambda function")
 
 	// Creates the kinesis stream.
+	log.Println("Creating kinesis stream...")
 	streamName := "my-kinesis-stream"
 	err = kinesis.Create(streamName)
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Println("Created kinesis stream")
 
 	// Gets the ARN from the kinesis stream.
+	log.Println("Binding lambda function to kinesis stream...")
 	streamARN, err := kinesis.GetARN(streamName)
 	if err != nil {
 		log.Fatal(err)
@@ -128,12 +185,15 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Println("Bound lambda function to kinesis stream")
 
 	// Create dynamodb table.
+	log.Println("Creating dynamodb table...")
 	err = dynamodb.CreateTable("books")
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Println("Created dynamodb table")
 
 	// // Creates the API Gateway.
 	// apiName := "my-kinesis-api"

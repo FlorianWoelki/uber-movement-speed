@@ -84,6 +84,17 @@ def log(logs: boto3.client, log_group_name: str, log_stream_name: str, message: 
     )
 
 
+def get_db_and_secret_arns(identifier: str, secret_name: str) -> tuple[str, str]:
+    db_client = boto3.client("rds", endpoint_url=endpoint_url)
+    clusters = db_client.describe_db_clusters(DBClusterIdentifier=identifier)
+    db_cluster_arn = clusters["DBClusters"][0]["DBClusterArn"]
+
+    secret_client = boto3.client("secretsmanager", endpoint_url=endpoint_url)
+    secret = secret_client.describe_secret(SecretId=secret_name)
+
+    return db_cluster_arn, secret["ARN"]
+
+
 def main():
     sc = SparkContext.getOrCreate()
     glue_context = GlueContext(sc)
@@ -99,7 +110,7 @@ def main():
 
     source_bucket = "raw-data"
     # TODO: Change to something more dynamic.
-    source_key = "year=2023/month=05/day=29/batch-from-d123-to-d123.csv"
+    source_key = "year=2023/month=05/day=30/batch-from-d123-to-d123.csv"
     source_path = f"s3://{source_bucket}/{source_key}"
     df = glue_context.create_dynamic_frame.from_options(
         connection_type="s3",
@@ -130,7 +141,7 @@ def main():
 
     target_bucket = "transformed-data"
     # TODO: Change to something more dynamic.
-    target_key = "year=2023/month=05/day=29/"
+    target_key = "year=2023/month=05/day=30/"
     target_path = f"s3://{target_bucket}/{target_key}"
     glue_context.write_dynamic_frame.from_options(
         frame=df_transformed,
@@ -147,6 +158,29 @@ def main():
         f"Wrote {df_transformed.count()} rows to {target_path}.",
     )
 
+    # Gets the ARNs for the RDS Aurora database and the secret.
+    cluster_arn, secret_arn = get_db_and_secret_arns("db1", "dbpass")
+
+    # Saves data to the RDS Aurora database.
+    aurora_client = boto3.client("rds-data", endpoint_url=endpoint_url)
+
+    rows = df_transformed.toDF().collect()
+    for row in rows:
+        parameters = [{"name": "title", "value": {"stringValue": row.title}}]
+        aurora_client.execute_statement(
+            resourceArn=cluster_arn,
+            secretArn=secret_arn,
+            database="test",
+            sql="INSERT INTO books (title) VALUES (:title)",
+            parameters=parameters,
+        )
+
+    log(
+        logs,
+        LOG_GROUP_NAME,
+        LOG_STREAM_NAME,
+        f"Inserted {len(rows)} rows into the Aurora database.",
+    )
     job.commit()
 
 

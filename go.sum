@@ -30,6 +30,8 @@ github.com/aws/aws-sdk-go-v2/service/dynamodbstreams v1.14.11 h1:WHi9VKMYGtWt2Dz
 github.com/aws/aws-sdk-go-v2/service/dynamodbstreams v1.14.11/go.mod h1:pP+91QTpJMvcFTqGky6puHrkBs8oqoB3XOCiGRDaXwI=
 github.com/aws/aws-sdk-go-v2/service/glue v1.49.0 h1:2vY+u9SaGbWsjN3O37z/PvGnTzlTSNiyTJl395fVlVI=
 github.com/aws/aws-sdk-go-v2/service/glue v1.49.0/go.mod h1:agadckFdb7BwFqeN4CXt3yrMtoFvY/8b2F+8FNeHVOc=
+github.com/aws/aws-sdk-go-v2/service/iam v1.19.12 h1:JH1H7POlsZt41X9JYIBLZoXW0Qv+WOuC48xsafsls2Q=
+github.com/aws/aws-sdk-go-v2/service/iam v1.19.12/go.mod h1:kAnokExGCYs7zfvZEZdFHvQ/x4ZKIci0Raps6mZI1Ag=
 github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.9.11 h1:y2+VQzC6Zh2ojtV2LoC0MNwHWc6qXv/j2vrQtlftkdA=
 github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.9.11/go.mod h1:iV4q2hsqtNECrfmlXyord9u4zyuFEJX9eLgLpSPzWA8=
 github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.1.28 h1:vGWm5vTpMr39tEZfQeDiDAMgk+5qsnvRny3FjLpnH5w=

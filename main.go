@@ -2,10 +2,7 @@ package main
 
 import (
 	"context"
-	"io/ioutil"
 	"log"
-	"os"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -41,48 +38,57 @@ func main() {
 		log.Fatal(err)
 	}
 
-	kinesis := awsService.NewKinesis(cfg)
-	lambda := awsService.NewLambda(cfg)
+	iam := awsService.NewIAM(cfg)
+
+	creds, err := iam.CreateRoleWithPolicy("my-role", "s3")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfg.Credentials = creds
+
+	// kinesis := awsService.NewKinesis(cfg)
+	// lambda := awsService.NewLambda(cfg)
 	s3 := awsService.NewS3(cfg)
-	dynamodb := awsService.NewDynamoDB(cfg)
-	glue := awsService.NewGlue(cfg)
-	aurora := awsService.NewAurora(cfg)
+	// dynamodb := awsService.NewDynamoDB(cfg)
+	// glue := awsService.NewGlue(cfg)
+	// aurora := awsService.NewAurora(cfg)
 	// apiGateway := awsService.NewAPIGateway(cfg)
 
-	// Creates the Aurora DB Cluster.
-	log.Println("Creating Aurora DB Cluster...")
-	// Changing `dbpass`, `db1`, or `test` requires a change in
-	// `services/glue/raw_data_etl.py` as well.
-	cluster, secret, err := aurora.CreateDBCluster("db1", "test", "dbpass", "test")
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Println("Created Aurora DB Cluster")
+	// // Creates the Aurora DB Cluster.
+	// log.Println("Creating Aurora DB Cluster...")
+	// // Changing `dbpass`, `db1`, or `test` requires a change in
+	// // `services/glue/raw_data_etl.py` as well.
+	// cluster, secret, err := aurora.CreateDBCluster("db1", "test", "dbpass", "test")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// log.Println("Created Aurora DB Cluster")
 
-	clusterARN := aws.ToString(cluster.DBCluster.DBClusterArn)
-	secretARN := aws.ToString(secret.ARN)
+	// clusterARN := aws.ToString(cluster.DBCluster.DBClusterArn)
+	// secretARN := aws.ToString(secret.ARN)
 
-	status := cluster.DBCluster.Status
-	for aws.ToString(status) != "available" {
-		log.Println("Waiting for Aurora DB Cluster to be available...")
-		c, err := aurora.GetDBCluster("db1")
-		if err != nil {
-			log.Fatal(err)
-		}
+	// status := cluster.DBCluster.Status
+	// for aws.ToString(status) != "available" {
+	// 	log.Println("Waiting for Aurora DB Cluster to be available...")
+	// 	c, err := aurora.GetDBCluster("db1")
+	// 	if err != nil {
+	// 		log.Fatal(err)
+	// 	}
 
-		status = c.Status
-		time.Sleep(2 * time.Second)
-	}
-	log.Println("Aurora DB Cluster is available")
+	// 	status = c.Status
+	// 	time.Sleep(2 * time.Second)
+	// }
+	// log.Println("Aurora DB Cluster is available")
 
-	log.Println("Creating Aurora DB Cluster Endpoint...")
-	// Creates the table for the Aurora DB. Changing `books` requires a change in
-	// `services/glue/raw_data_etl.py` as well.
-	_, err = aurora.ExecuteStatement("test", clusterARN, secretARN, "CREATE TABLE books (id SERIAL PRIMARY KEY, title VARCHAR(100))")
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Println("Created Aurora DB Cluster Endpoint")
+	// log.Println("Creating Aurora DB Cluster Endpoint...")
+	// // Creates the table for the Aurora DB. Changing `books` requires a change in
+	// // `services/glue/raw_data_etl.py` as well.
+	// _, err = aurora.ExecuteStatement("test", clusterARN, secretARN, "CREATE TABLE books (id SERIAL PRIMARY KEY, title VARCHAR(100))")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// log.Println("Created Aurora DB Cluster Endpoint")
 
 	// Creates the lambda S3 bucket.
 	log.Println("Creating S3 bucket for lambda...")
@@ -92,108 +98,108 @@ func main() {
 	}
 	log.Println("Created S3 bucket for lambda")
 
-	// Creates the S3 bucket for the raw data that is being sent from the `preprocessing`
-	// service.
-	log.Println("Creating S3 bucket for raw data...")
-	err = s3.CreateBucket("raw-data")
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Println("Created S3 bucket for raw data")
+	// // Creates the S3 bucket for the raw data that is being sent from the `preprocessing`
+	// // service.
+	// log.Println("Creating S3 bucket for raw data...")
+	// err = s3.CreateBucket("raw-data")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// log.Println("Created S3 bucket for raw data")
 
-	// Loads the python PySpark script.
-	log.Println("Uploading PySpark script to `raw-data` S3 bucket...")
-	file, err := os.Open("services/glue/raw_data_etl.py")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer file.Close()
-	scriptFileBytes, err := ioutil.ReadAll(file)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// // Loads the python PySpark script.
+	// log.Println("Uploading PySpark script to `raw-data` S3 bucket...")
+	// file, err := os.Open("services/glue/raw_data_etl.py")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// defer file.Close()
+	// scriptFileBytes, err := ioutil.ReadAll(file)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	// Uploads the python PySpark script to the S3 bucket.
-	err = s3.PutObject("raw-data", "scripts/raw_data_etl.py", scriptFileBytes)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Println("Uploaded PySpark script to `raw-data` S3 bucket")
+	// // Uploads the python PySpark script to the S3 bucket.
+	// err = s3.PutObject("raw-data", "scripts/raw_data_etl.py", scriptFileBytes)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// log.Println("Uploaded PySpark script to `raw-data` S3 bucket")
 
-	// Creates the S3 bucket for the transformed data that is being sent from the glue job
-	log.Println("Creating S3 bucket for transformed data...")
-	err = s3.CreateBucket("transformed-data")
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Println("Created S3 bucket for transformed data")
+	// // Creates the S3 bucket for the transformed data that is being sent from the glue job
+	// log.Println("Creating S3 bucket for transformed data...")
+	// err = s3.CreateBucket("transformed-data")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// log.Println("Created S3 bucket for transformed data")
 
-	// Creates the glue job.
-	log.Println("Creating glue job...")
-	err = glue.CreateJob("raw-data-etl", "s3://raw-data/scripts/raw_data_etl.py")
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Println("Created glue job")
+	// // Creates the glue job.
+	// log.Println("Creating glue job...")
+	// err = glue.CreateJob("raw-data-etl", "s3://raw-data/scripts/raw_data_etl.py")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// log.Println("Created glue job")
 
-	// Loads the lambda zip file.
-	log.Println("Uploading lambda zip file to S3 bucket...")
-	file, err = os.Open("services/preprocessing/preprocessing.zip")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer file.Close()
-	zipFileBytes, err := ioutil.ReadAll(file)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// // Loads the lambda zip file.
+	// log.Println("Uploading lambda zip file to S3 bucket...")
+	// file, err = os.Open("services/preprocessing/preprocessing.zip")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// defer file.Close()
+	// zipFileBytes, err := ioutil.ReadAll(file)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	// Uploads the lambda zip file to the S3 bucket.
-	err = s3.PutObject("lambda-bucket", "preprocessing.zip", zipFileBytes)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Println("Uploaded lambda zip file to S3 bucket")
+	// // Uploads the lambda zip file to the S3 bucket.
+	// err = s3.PutObject("lambda-bucket", "preprocessing.zip", zipFileBytes)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// log.Println("Uploaded lambda zip file to S3 bucket")
 
-	// Creates the lambda function.
-	log.Println("Creating lambda function...")
-	_, err = lambda.CreateGo("Preprocessing", "lambda-bucket", "preprocessing.zip")
-	if err != nil {
-		log.Fatal(err)
-	}
-	// TODO: Wait for lambda function to be created.
-	log.Println("Created lambda function")
+	// // Creates the lambda function.
+	// log.Println("Creating lambda function...")
+	// _, err = lambda.CreateGo("Preprocessing", "lambda-bucket", "preprocessing.zip")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// // TODO: Wait for lambda function to be created.
+	// log.Println("Created lambda function")
 
-	// Creates the kinesis stream.
-	log.Println("Creating kinesis stream...")
-	streamName := "my-kinesis-stream"
-	err = kinesis.Create(streamName)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Println("Created kinesis stream")
+	// // Creates the kinesis stream.
+	// log.Println("Creating kinesis stream...")
+	// streamName := "my-kinesis-stream"
+	// err = kinesis.Create(streamName)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// log.Println("Created kinesis stream")
 
-	// Gets the ARN from the kinesis stream.
-	log.Println("Binding lambda function to kinesis stream...")
-	streamARN, err := kinesis.GetARN(streamName)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// // Gets the ARN from the kinesis stream.
+	// log.Println("Binding lambda function to kinesis stream...")
+	// streamARN, err := kinesis.GetARN(streamName)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	// Creates the lambda event source mapping.
-	err = lambda.BindToService("Preprocessing", streamARN)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Println("Bound lambda function to kinesis stream")
+	// // Creates the lambda event source mapping.
+	// err = lambda.BindToService("Preprocessing", streamARN)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// log.Println("Bound lambda function to kinesis stream")
 
-	// Create dynamodb table.
-	log.Println("Creating dynamodb table...")
-	err = dynamodb.CreateTable("books")
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Println("Created dynamodb table")
+	// // Create dynamodb table.
+	// log.Println("Creating dynamodb table...")
+	// err = dynamodb.CreateTable("books")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// log.Println("Created dynamodb table")
 
 	// // Creates the API Gateway.
 	// apiName := "my-kinesis-api"

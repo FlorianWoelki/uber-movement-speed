@@ -28,6 +28,88 @@ var policies = map[string]string{
 			}
 		]
 	}`,
+	"kinesis": `{
+		"Version": "2012-10-17",
+		"Statement": [
+			{
+				"Effect": "Allow",
+				"Action": [
+					"kinesis:CreateStream",
+					"kinesis:DeleteStream",
+					"kinesis:PutRecord",
+					"kinesis:DescribeStream"
+				],
+				"Resource": [
+					"arn:aws:kinesis:::*/*",
+					"arn:aws:kinesis:::*"
+				]
+			}
+		]
+	}`,
+	"lambda": `{
+		"Version": "2012-10-17",
+		"Statement": [
+			{
+				"Effect": "Allow",
+				"Action": [
+					"lambda:CreateFunction",
+					"lambda:DeleteFunction",
+					"lambda:CreateEventSourceMapping"
+				],
+				"Resource": [
+					"arn:aws:lambda:::*/*",
+					"arn:aws:lambda:::*"
+				]
+			}
+		]
+	}`,
+	"dynamodb": `{
+		"Version": "2012-10-17",
+		"Statement": [
+			{
+				"Effect": "Allow",
+				"Action": [
+					"dynamodb:CreateTable",
+					"dynamodb:DeleteTable",
+					"dynamodb:PutItem",
+					"dynamodb:DeleteItem",
+					"dynamodb:UpdateTable",
+					"dynamodb:DescribeTable"
+				],
+				"Resource": [
+					"arn:aws:dynamodb:::*/*",
+					"arn:aws:dynamodb:::*"
+				]
+			}
+		]
+	}`,
+	"glue": `{
+		"Version": "2012-10-17",
+		"Statement": [
+			{
+				"Effect": "Allow",
+				"Action": [
+					"glue:CreateJob"
+				],
+				"Resource": [
+					"arn:aws:glue:::*/*",
+					"arn:aws:glue:::*"
+				]
+			}
+		]
+	}`,
+	"rds": `{
+		"Version": "2012-10-17",
+		"Statement": [
+			{
+				"Effect": "Allow",
+				"Action": [
+					"rds:*"
+				],
+				"Resource": "*"	
+			}
+		]
+	}`,
 }
 
 type iamAPI interface {

@@ -22,7 +22,7 @@ type S3 struct {
 // NewS3 creates a new S3 client with the given configuration.
 func NewS3(config aws.Config) *S3 {
 	return &S3{
-		client: s3.NewFromConfig(config),
+		client: s3.NewFromConfig(config.Copy()),
 	}
 }
 

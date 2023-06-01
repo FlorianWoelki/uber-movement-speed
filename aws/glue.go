@@ -19,7 +19,9 @@ type Glue struct {
 
 // NewGlue creates a new Glue client.
 func NewGlue(config aws.Config) *Glue {
-	return &Glue{client: glue.NewFromConfig(config)}
+	return &Glue{
+		client: glue.NewFromConfig(config.Copy()),
+	}
 }
 
 // CreateJob creates a new Glue job with the given name and script location.

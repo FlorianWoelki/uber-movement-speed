@@ -32,10 +32,11 @@ type Aurora struct {
 
 // NewAurora creates a new Aurora client with the given configuration.
 func NewAurora(config aws.Config) *Aurora {
+	cfg := config.Copy()
 	return &Aurora{
-		rdsClient:            rds.NewFromConfig(config),
-		rdsDataClient:        rdsdata.NewFromConfig(config),
-		secretsManagerClient: secretsmanager.NewFromConfig(config),
+		rdsClient:            rds.NewFromConfig(cfg),
+		rdsDataClient:        rdsdata.NewFromConfig(cfg),
+		secretsManagerClient: secretsmanager.NewFromConfig(cfg),
 	}
 }
 

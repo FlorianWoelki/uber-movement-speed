@@ -22,7 +22,7 @@ type Lambda struct {
 // NewLambda creates a new Lambda client with the given configuration.
 func NewLambda(config aws.Config) *Lambda {
 	return &Lambda{
-		client: lambda.NewFromConfig(config),
+		client: lambda.NewFromConfig(config.Copy()),
 	}
 }
 

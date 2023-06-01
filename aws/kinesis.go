@@ -22,7 +22,7 @@ type Kinesis struct {
 // NewKinesis creates a new Kinesis client with the given configuration.
 func NewKinesis(config aws.Config) *Kinesis {
 	return &Kinesis{
-		client: kinesis.NewFromConfig(config),
+		client: kinesis.NewFromConfig(config.Copy()),
 	}
 }
 

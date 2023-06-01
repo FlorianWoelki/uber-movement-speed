@@ -25,7 +25,7 @@ type DynamoDB struct {
 // NewDynamoDB creates a new DynamoDB client with the given configuration.
 func NewDynamoDB(config aws.Config) *DynamoDB {
 	return &DynamoDB{
-		client: dynamodb.NewFromConfig(config),
+		client: dynamodb.NewFromConfig(config.Copy()),
 	}
 }
 

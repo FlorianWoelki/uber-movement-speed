@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -112,7 +113,7 @@ func main() {
 	glue := awsService.NewGlue(cfg)
 	cfg.Credentials = iamRoles.aurora
 	aurora := awsService.NewAurora(cfg)
-	// apiGateway := awsService.NewAPIGateway(cfg)
+	apiGateway := awsService.NewAPIGateway(cfg)
 
 	// Creates the lambda S3 bucket.
 	log.Println("Creating S3 bucket for lambda...")
@@ -167,7 +168,7 @@ func main() {
 	log.Println("Created glue job")
 
 	// Loads the lambda zip file.
-	log.Println("Uploading lambda zip file to S3 bucket...")
+	log.Println("Uploading `Preprocessing` lambda zip file to S3 bucket...")
 	file, err = os.Open("services/preprocessing/preprocessing.zip")
 	if err != nil {
 		log.Fatal(err)
@@ -183,16 +184,66 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println("Uploaded lambda zip file to S3 bucket")
+	log.Println("Uploaded `Preprocessing` lambda zip file to S3 bucket")
 
 	// Creates the lambda function.
-	log.Println("Creating lambda function...")
+	log.Println("Creating `Preprocessing` lambda function...")
 	_, err = lambda.CreateGo("Preprocessing", "lambda-bucket", "preprocessing.zip")
 	if err != nil {
 		log.Fatal(err)
 	}
 	// TODO: Wait for lambda function to be created.
-	log.Println("Created lambda function")
+	log.Println("Created `Preprocessing` lambda function")
+
+	// Loads the lambda zip file.
+	log.Println("Uploading `KinesisDataForwarder` lambda zip file to S3 bucket...")
+	file, err = os.Open("services/kinesis_data_forwarder/kinesis_data_forwarder.zip")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+	zipFileBytes, err = ioutil.ReadAll(file)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Uploads the lambda zip file to the S3 bucket.
+	err = s3.PutObject("lambda-bucket", "kinesis_data_forwarder.zip", zipFileBytes)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println("Uploaded `KinesisDataForwarder` lambda zip file to S3 bucket")
+
+	// Creates the lambda function.
+	log.Println("Creating lambda function...")
+	kinesisDataForwarderARN, err := lambda.CreateGo("KinesisDataForwarder", "lambda-bucket", "kinesis_data_forwarder.zip")
+	if err != nil {
+		log.Fatal(err)
+	}
+	// TODO: Wait for lambda function to be created.
+	log.Println("Created `KinesisDataForwarder` lambda function")
+
+	// Creates the API Gateway.
+	log.Println("Creating API Gateway...")
+	apiName := "my-kinesis-api"
+	apiGatewayId, err := apiGateway.Create(apiName)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println("Created API Gateway")
+
+	// Creates the API Gateway endpoint for the kinesis data forwarder lambda function.
+	log.Println("Creating API Gateway endpoint for `KinesisDataForwarder` lambda function...")
+	err = apiGateway.CreateEndpoint(apiGatewayId, awsService.EndpointOptions{
+		Path:   "/kinesis",
+		Method: "POST",
+		Uri:    kinesisDataForwarderARN,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println("Created API Gateway endpoint for `KinesisDataForwarder` lambda function")
+	fmt.Println("API Gateway ID:", apiGatewayId)
 
 	// Creates the kinesis stream.
 	log.Println("Creating kinesis stream...")
@@ -259,46 +310,6 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Println("Created Aurora DB Cluster Endpoint")
-
-	// // Creates the API Gateway.
-	// apiName := "my-kinesis-api"
-	// apiGatewayId, err := apiGateway.Create(apiName)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// // Creates the API Gateway endpoint for the kinesis data forwarder lambda function.
-	// err = apiGateway.CreateEndpoint(apiGatewayId, awsService.EndpointOptions{
-	// 	Path:            "kinesis",
-	// 	Method:          "POST",
-	// 	Uri:             fmt.Sprintf("arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/%s/invocations", kinesisDataForwarderARN),
-	// 	IntegrationType: "AWS_PROXY",
-	// })
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// fmt.Println(apiGatewayId)
-
-	// aurora := awsService.NewAurora(cfg)
-
-	// _, secret, err := aurora.CreateDBCluster("db1", "test", "test", "test")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// fmt.Println(aws.ToString(secret.ARN))
-
-	// cluster, err := aurora.GetDBCluster("db1")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// clusterArn := aws.ToString(cluster.DBClusterArn)
-	// secretArn := "arn:aws:secretsmanager:us-east-1:000000000000:secret:test-abQbyQ"
-	// err = aurora.ExecuteStatement("test", clusterArn, secretArn, "SELECT 123")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
 
 	// apiGatewayClient := apigateway.NewFromConfig(cfg)
 	// s3client := s3.NewFromConfig(cfg)

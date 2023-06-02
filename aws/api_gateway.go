@@ -5,18 +5,16 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/apigateway"
-	"github.com/aws/aws-sdk-go-v2/service/apigateway/types"
+	"github.com/aws/aws-sdk-go-v2/service/apigatewayv2"
+	"github.com/aws/aws-sdk-go-v2/service/apigatewayv2/types"
 )
 
 type apiGatewayAPI interface {
-	CreateRestApi(ctx context.Context, params *apigateway.CreateRestApiInput, optFns ...func(*apigateway.Options)) (*apigateway.CreateRestApiOutput, error)
-	DeleteRestApi(ctx context.Context, params *apigateway.DeleteRestApiInput, optFns ...func(*apigateway.Options)) (*apigateway.DeleteRestApiOutput, error)
-	GetResources(ctx context.Context, params *apigateway.GetResourcesInput, optFns ...func(*apigateway.Options)) (*apigateway.GetResourcesOutput, error)
-	CreateResource(ctx context.Context, params *apigateway.CreateResourceInput, optFns ...func(*apigateway.Options)) (*apigateway.CreateResourceOutput, error)
-	PutMethod(ctx context.Context, params *apigateway.PutMethodInput, optFns ...func(*apigateway.Options)) (*apigateway.PutMethodOutput, error)
-	PutIntegration(ctx context.Context, params *apigateway.PutIntegrationInput, optFns ...func(*apigateway.Options)) (*apigateway.PutIntegrationOutput, error)
-	CreateDeployment(ctx context.Context, params *apigateway.CreateDeploymentInput, optFns ...func(*apigateway.Options)) (*apigateway.CreateDeploymentOutput, error)
+	CreateApi(ctx context.Context, params *apigatewayv2.CreateApiInput, optFns ...func(*apigatewayv2.Options)) (*apigatewayv2.CreateApiOutput, error)
+	DeleteApi(ctx context.Context, params *apigatewayv2.DeleteApiInput, optFns ...func(*apigatewayv2.Options)) (*apigatewayv2.DeleteApiOutput, error)
+	CreateDeployment(ctx context.Context, params *apigatewayv2.CreateDeploymentInput, optFns ...func(*apigatewayv2.Options)) (*apigatewayv2.CreateDeploymentOutput, error)
+	CreateRoute(ctx context.Context, params *apigatewayv2.CreateRouteInput, optFns ...func(*apigatewayv2.Options)) (*apigatewayv2.CreateRouteOutput, error)
+	CreateIntegration(ctx context.Context, params *apigatewayv2.CreateIntegrationInput, optFns ...func(*apigatewayv2.Options)) (*apigatewayv2.CreateIntegrationOutput, error)
 }
 
 // APIGateway is a wrapper around the AWS API Gateway client.
@@ -27,27 +25,29 @@ type APIGateway struct {
 // NewAPIGateway creates a new API Gateway client with the given configuration.
 func NewAPIGateway(config aws.Config) *APIGateway {
 	return &APIGateway{
-		client: apigateway.NewFromConfig(config),
+		client: apigatewayv2.NewFromConfig(config),
 	}
 }
 
 // Create creates an API Gateway with the given name and returns the ID of the API Gateway
 // that was created.
 func (a *APIGateway) Create(name string) (string, error) {
-	createOutput, err := a.client.CreateRestApi(context.TODO(), &apigateway.CreateRestApiInput{
-		Name: aws.String(name),
+	createOutput, err := a.client.CreateApi(context.TODO(), &apigatewayv2.CreateApiInput{
+		Name:         aws.String(name),
+		ProtocolType: types.ProtocolTypeHttp,
+		// RouteSelectionExpression: aws.String("$request.body.action"),
 	})
 	if err != nil {
 		return "", err
 	}
 
-	return aws.ToString(createOutput.Id), nil
+	return aws.ToString(createOutput.ApiId), nil
 }
 
 // Delete deletes the API Gateway with the given ID.
 func (a *APIGateway) Delete(id string) error {
-	_, err := a.client.DeleteRestApi(context.TODO(), &apigateway.DeleteRestApiInput{
-		RestApiId: aws.String(id),
+	_, err := a.client.DeleteApi(context.TODO(), &apigatewayv2.DeleteApiInput{
+		ApiId: aws.String(id),
 	})
 	if err != nil {
 		return err
@@ -64,56 +64,37 @@ type EndpointOptions struct {
 	Method string
 	// Uri is the URI of the endpoint.
 	Uri string
-	// IntegrationType is the type of the integration.
-	IntegrationType types.IntegrationType
 	// RequestParameters are the request parameters of the endpoint.
-	RequestParameters map[string]string
+	RequestParameters map[string]types.ParameterConstraints
 }
 
 // CreateEndpoint creates an endpoint for the given API Gateway ID with the given options.
 // It creates a resource with the given path, a method with the given HTTP method,
 // an integration with the given URI, and a deployment.
 func (a *APIGateway) CreateEndpoint(id string, options EndpointOptions) error {
-	parentId, err := a.getRootId(id)
-	if err != nil {
-		return err
-	}
-
-	createResourceOutput, err := a.client.CreateResource(context.TODO(), &apigateway.CreateResourceInput{
-		RestApiId: aws.String(id),
-		ParentId:  aws.String(parentId),
-		PathPart:  aws.String(options.Path),
-	})
-	if err != nil {
-		return err
-	}
-	resourceId := aws.ToString(createResourceOutput.Id)
-
-	_, err = a.client.PutMethod(context.TODO(), &apigateway.PutMethodInput{
-		RestApiId:         aws.String(id),
-		ResourceId:        aws.String(resourceId),
-		HttpMethod:        aws.String(options.Method),
-		RequestParameters: map[string]bool{fmt.Sprintf("method.request.path.%s", options.Path): true},
-		AuthorizationType: aws.String("NONE"),
+	integrationOutput, err := a.client.CreateIntegration(context.TODO(), &apigatewayv2.CreateIntegrationInput{
+		ApiId:           aws.String(id),
+		IntegrationType: types.IntegrationTypeAwsProxy,
+		// IntegrationMethod: aws.String(options.Method),
+		IntegrationUri:       aws.String(options.Uri),
+		PayloadFormatVersion: aws.String("2.0"),
 	})
 	if err != nil {
 		return err
 	}
 
-	_, err = a.client.PutIntegration(context.TODO(), &apigateway.PutIntegrationInput{
-		RestApiId:             aws.String(id),
-		ResourceId:            aws.String(resourceId),
-		HttpMethod:            aws.String(options.Method),
-		Type:                  options.IntegrationType,
-		IntegrationHttpMethod: aws.String("POST"),
-		Uri:                   aws.String(options.Uri),
+	_, err = a.client.CreateRoute(context.TODO(), &apigatewayv2.CreateRouteInput{
+		ApiId:             aws.String(id),
+		RouteKey:          aws.String(fmt.Sprintf("%s %s", options.Method, options.Path)),
+		Target:            integrationOutput.IntegrationId,
+		RequestParameters: options.RequestParameters,
 	})
 	if err != nil {
 		return err
 	}
 
-	_, err = a.client.CreateDeployment(context.TODO(), &apigateway.CreateDeploymentInput{
-		RestApiId: aws.String(id),
+	_, err = a.client.CreateDeployment(context.TODO(), &apigatewayv2.CreateDeploymentInput{
+		ApiId:     aws.String(id),
 		StageName: aws.String("dev"),
 	})
 	if err != nil {
@@ -121,23 +102,4 @@ func (a *APIGateway) CreateEndpoint(id string, options EndpointOptions) error {
 	}
 
 	return nil
-}
-
-// getRootId returns the ID of the root resource for the given API Gateway ID.
-// The root resource is the resource with the path `/`.
-func (a *APIGateway) getRootId(id string) (string, error) {
-	getResourcesOutput, err := a.client.GetResources(context.TODO(), &apigateway.GetResourcesInput{
-		RestApiId: aws.String(id),
-	})
-	if err != nil {
-		return "", err
-	}
-
-	for _, resource := range getResourcesOutput.Items {
-		if aws.ToString(resource.Path) == "/" {
-			return aws.ToString(resource.Id), nil
-		}
-	}
-
-	return "", fmt.Errorf("unable to find root resource for API Gateway ID %s", id)
 }

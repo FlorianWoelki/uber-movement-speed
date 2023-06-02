@@ -38,7 +38,7 @@ func (l *Lambda) CreateGo(name, bucketName, bucketObjectKey string) (string, err
 		FunctionName: aws.String(name),
 		Handler:      aws.String("main"),
 		Runtime:      types.RuntimeGo1x,
-		Role:         aws.String("arn:aws:iam::123456789012:role/lambda-role"),
+		Role:         aws.String("arn:aws:iam::000000000000:role/lambda-role"),
 		Timeout:      aws.Int32(60),
 		MemorySize:   aws.Int32(128),
 		Publish:      true,

@@ -2,9 +2,9 @@
 source .env
 
 export LOCALSTACK_API_KEY=${LOCALSTACK_API_KEY}
-export ENFORCE_IAM=1
+export IAM_SOFT_MODE=1
 
-# Check if `LOCALSTACK_API_KEY`` is set.
+# Check if `LOCALSTACK_API_KEY` is set.
 if [ -z "$LOCALSTACK_API_KEY" ]; then
   echo "LOCALSTACK_API_KEY is not set. Please set it in .env file."
   exit 1

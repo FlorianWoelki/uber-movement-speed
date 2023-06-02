@@ -39,10 +39,7 @@ var policies = map[string]string{
 					"kinesis:PutRecord",
 					"kinesis:DescribeStream"
 				],
-				"Resource": [
-					"arn:aws:kinesis:::*/*",
-					"arn:aws:kinesis:::*"
-				]
+				"Resource": "*"	
 			}
 		]
 	}`,
@@ -50,16 +47,10 @@ var policies = map[string]string{
 		"Version": "2012-10-17",
 		"Statement": [
 			{
+				"Sid": "FirstStatement",
 				"Effect": "Allow",
-				"Action": [
-					"lambda:CreateFunction",
-					"lambda:DeleteFunction",
-					"lambda:CreateEventSourceMapping"
-				],
-				"Resource": [
-					"arn:aws:lambda:::*/*",
-					"arn:aws:lambda:::*"
-				]
+				"Action": ["lambda:CreateFunction", "iam:PassRole"],
+				"Resource": "*"
 			}
 		]
 	}`,
@@ -74,12 +65,13 @@ var policies = map[string]string{
 					"dynamodb:PutItem",
 					"dynamodb:DeleteItem",
 					"dynamodb:UpdateTable",
-					"dynamodb:DescribeTable"
+					"dynamodb:DescribeTable",
+					"iam:ListRolePolicies",
+					"iam:GetRole",
+					"iam:GetRolePolicy",
+					"iam:PassRole"
 				],
-				"Resource": [
-					"arn:aws:dynamodb:::*/*",
-					"arn:aws:dynamodb:::*"
-				]
+				"Resource": "*"	
 			}
 		]
 	}`,
@@ -89,12 +81,19 @@ var policies = map[string]string{
 			{
 				"Effect": "Allow",
 				"Action": [
-					"glue:CreateJob"
+					"glue:*",
+					"logs:CreateLogGroup",
+					"logs:CreateLogStream",
+					"logs:PutLogEvents",
+					"rds:DescribeDBClusters",
+					"secretsmanager:DescribeSecret",
+					"rds-data:ExecuteStatement",
+					"iam:ListRolePolicies",
+					"iam:GetRole",
+					"iam:GetRolePolicy",
+					"iam:PassRole"
 				],
-				"Resource": [
-					"arn:aws:glue:::*/*",
-					"arn:aws:glue:::*"
-				]
+				"Resource": "*"	
 			}
 		]
 	}`,
@@ -104,7 +103,16 @@ var policies = map[string]string{
 			{
 				"Effect": "Allow",
 				"Action": [
-					"rds:*"
+					"rds:CreateDBCluster",
+					"rds:CreateDBInstance",
+					"rds:CreateDBSubnetGroup",
+					"rds:CreateDBSecurityGroup",
+					"rds:AddRoleToDBInstance",
+					"rds:AddSourceIdentifierToSubscription",
+					"rds:AddTagsToResource",
+					"rds:DescribeDBClusters",
+					"rds-data:ExecuteStatement",
+					"secretsmanager:CreateSecret"
 				],
 				"Resource": "*"	
 			}
@@ -137,22 +145,19 @@ func NewIAM(config aws.Config) *IAM {
 // in the policies map. The service is the AWS service that will assume the role.
 // It returns a credentials cache that can be used to assume the role.
 func (i *IAM) CreateRoleWithPolicy(name, service string) (*aws.CredentialsCache, error) {
-	serviceForRole := fmt.Sprintf("%s.amazonaws.com", service)
 	// Creates a role for the given service.
 	role, err := i.iamClient.CreateRole(context.TODO(), &iam.CreateRoleInput{
 		RoleName: aws.String(name),
-		AssumeRolePolicyDocument: aws.String(fmt.Sprintf(`{
+		AssumeRolePolicyDocument: aws.String(`{
 			"Version": "2012-10-17",
 			"Statement": [
 				{
 					"Action": "sts:AssumeRole",
-					"Principal": {
-						"Service": "%s"
-					},
+					"Principal": "*",
 					"Effect": "Allow",
 				}
 			]
-		}`, serviceForRole)),
+		}`),
 	})
 	if err != nil {
 		return nil, err

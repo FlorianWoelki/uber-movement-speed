@@ -73,9 +73,9 @@ type EndpointOptions struct {
 // an integration with the given URI, and a deployment.
 func (a *APIGateway) CreateEndpoint(id string, options EndpointOptions) error {
 	integrationOutput, err := a.client.CreateIntegration(context.TODO(), &apigatewayv2.CreateIntegrationInput{
-		ApiId:           aws.String(id),
-		IntegrationType: types.IntegrationTypeAwsProxy,
-		// IntegrationMethod: aws.String(options.Method),
+		ApiId:                aws.String(id),
+		IntegrationType:      types.IntegrationTypeAwsProxy,
+		IntegrationMethod:    aws.String(options.Method),
 		IntegrationUri:       aws.String(options.Uri),
 		PayloadFormatVersion: aws.String("2.0"),
 	})

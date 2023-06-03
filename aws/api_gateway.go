@@ -78,6 +78,7 @@ func (a *APIGateway) CreateEndpoint(id string, options EndpointOptions) error {
 		IntegrationMethod:    aws.String(options.Method),
 		IntegrationUri:       aws.String(options.Uri),
 		PayloadFormatVersion: aws.String("2.0"),
+		PassthroughBehavior:  types.PassthroughBehaviorWhenNoMatch,
 	})
 	if err != nil {
 		return err
@@ -88,6 +89,7 @@ func (a *APIGateway) CreateEndpoint(id string, options EndpointOptions) error {
 		RouteKey:          aws.String(fmt.Sprintf("%s %s", options.Method, options.Path)),
 		Target:            integrationOutput.IntegrationId,
 		RequestParameters: options.RequestParameters,
+		AuthorizationType: types.AuthorizationTypeNone,
 	})
 	if err != nil {
 		return err

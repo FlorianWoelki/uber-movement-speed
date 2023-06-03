@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -197,7 +196,7 @@ func main() {
 
 	// Loads the lambda zip file.
 	log.Println("Uploading `KinesisDataForwarder` lambda zip file to S3 bucket...")
-	file, err = os.Open("services/kinesis_data_forwarder/kinesis_data_forwarder.zip")
+	file, err = os.Open("services/kinesis_data_forwarder/dist/kinesis_data_forwarder.zip")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -215,8 +214,8 @@ func main() {
 	log.Println("Uploaded `KinesisDataForwarder` lambda zip file to S3 bucket")
 
 	// Creates the lambda function.
-	log.Println("Creating lambda function...")
-	kinesisDataForwarderARN, err := lambda.CreateGo("KinesisDataForwarder", "lambda-bucket", "kinesis_data_forwarder.zip")
+	log.Println("Creating `KinesisDataForwarder` lambda function...")
+	kinesisDataForwarderARN, err := lambda.CreateNode("KinesisDataForwarder", "lambda-bucket", "kinesis_data_forwarder.zip")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -243,7 +242,7 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Println("Created API Gateway endpoint for `KinesisDataForwarder` lambda function")
-	fmt.Println("API Gateway ID:", apiGatewayId)
+	log.Println("API Gateway ID:", apiGatewayId)
 
 	// Creates the kinesis stream.
 	log.Println("Creating kinesis stream...")

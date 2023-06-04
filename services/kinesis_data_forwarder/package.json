@@ -1,5 +1,5 @@
 {
-  "name": "kinesis_data_forwarder",
+  "name": "kinesis-data-forwarder",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",

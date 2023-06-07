@@ -103,7 +103,7 @@ def main():
         print(f"Stopped Glue job run with ID: {job_run_id}")
         return
 
-    print(f"Usage: {sys.argv[0]} [start|stop]")
+    print(f"Usage: {sys.argv[0]} [start|stop|logs]")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 import sys
 import time
 import boto3
+from datetime import datetime
 from pyspark.context import SparkContext
 from pyspark.sql.functions import col, upper
 from awsglue.utils import getResolvedOptions
@@ -108,13 +109,17 @@ def main():
 
     job.init(args["JOB_NAME"], args)
 
+    now = datetime.now()
+    year = now.year
+    month = now.strftime("%m")
+    day = now.strftime("%d")
+
     source_bucket = "raw-data"
-    # TODO: Change to something more dynamic.
-    source_key = "year=2023/month=05/day=30/batch-from-d123-to-d123.csv"
+    source_key = f"year={year}/month={month}/day={day}"
     source_path = f"s3://{source_bucket}/{source_key}"
     df = glue_context.create_dynamic_frame.from_options(
         connection_type="s3",
-        connection_options={"paths": [source_path]},
+        connection_options={"paths": [source_path], "recurse": True},
         format="csv",
         format_options={"withHeader": True},
     ).toDF()
@@ -140,8 +145,7 @@ def main():
     df_transformed = DynamicFrame.fromDF(df_transformed, glue_context, "df_transformed")
 
     target_bucket = "transformed-data"
-    # TODO: Change to something more dynamic.
-    target_key = "year=2023/month=05/day=30/"
+    target_key = f"year={year}/month={month}/day={day}/"
     target_path = f"s3://{target_bucket}/{target_key}"
     glue_context.write_dynamic_frame.from_options(
         frame=df_transformed,

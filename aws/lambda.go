@@ -63,7 +63,7 @@ func (l *Lambda) CreateNode(name, bucketName, bucketObjecyKey string) (string, e
 		FunctionName: aws.String(name),
 		Handler:      aws.String("index.handler"),
 		Runtime:      types.RuntimeNodejs16x,
-		Role:         aws.String("arn:aws:iam::123456789012:role/lambda-role"),
+		Role:         aws.String("arn:aws:iam::000000000000:role/lambda-role"),
 		Timeout:      aws.Int32(60),
 		MemorySize:   aws.Int32(128),
 		Publish:      true,

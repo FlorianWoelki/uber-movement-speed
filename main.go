@@ -14,12 +14,13 @@ import (
 )
 
 type IAMRoles struct {
-	s3       *aws.CredentialsCache
-	kinesis  *aws.CredentialsCache
-	lambda   *aws.CredentialsCache
-	dynamodb *aws.CredentialsCache
-	glue     *aws.CredentialsCache
-	aurora   *aws.CredentialsCache
+	s3         *aws.CredentialsCache
+	kinesis    *aws.CredentialsCache
+	lambda     *aws.CredentialsCache
+	dynamodb   *aws.CredentialsCache
+	glue       *aws.CredentialsCache
+	aurora     *aws.CredentialsCache
+	apiGateway *aws.CredentialsCache
 }
 
 func createIAMRoles(iam *awsService.IAM) (*IAMRoles, error) {
@@ -60,6 +61,12 @@ func createIAMRoles(iam *awsService.IAM) (*IAMRoles, error) {
 		return nil, err
 	}
 	iamRoles.aurora = auroraCreds
+
+	apiGatewayCreds, err := iam.CreateRoleWithPolicy("apigatewayv2-role", "apigatewayv2")
+	if err != nil {
+		return nil, err
+	}
+	iamRoles.apiGateway = apiGatewayCreds
 
 	return iamRoles, nil
 }
@@ -112,6 +119,7 @@ func main() {
 	glue := awsService.NewGlue(cfg)
 	cfg.Credentials = iamRoles.aurora
 	aurora := awsService.NewAurora(cfg)
+	cfg.Credentials = iamRoles.apiGateway
 	apiGateway := awsService.NewAPIGateway(cfg)
 
 	// Creates the lambda S3 bucket.

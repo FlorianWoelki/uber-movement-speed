@@ -49,7 +49,16 @@ var policies = map[string]string{
 			{
 				"Sid": "FirstStatement",
 				"Effect": "Allow",
-				"Action": ["lambda:CreateFunction", "iam:PassRole"],
+				"Action": [
+					"lambda:CreateFunction",
+					"iam:PassRole",
+					"logs:CreateLogGroup",
+					"logs:CreateLogStream",
+					"logs:PutLogEvents",
+					"s3:PutObject",
+					"lambda:CreateEventSourceMapping",
+					"dynamodb:PutItem"
+				],
 				"Resource": "*"
 			}
 		]
@@ -118,6 +127,18 @@ var policies = map[string]string{
 			}
 		]
 	}`,
+	"apigatewayv2": `{
+		"Version": "2012-10-17",
+		"Statement": [
+			{
+				"Effect": "Allow",
+				"Action": [
+					"apigateway:*"
+				],
+				"Resource": "*"	
+			}
+		]
+	}`,
 }
 
 type iamAPI interface {
@@ -154,7 +175,7 @@ func (i *IAM) CreateRoleWithPolicy(name, service string) (*aws.CredentialsCache,
 				{
 					"Action": "sts:AssumeRole",
 					"Principal": "*",
-					"Effect": "Allow",
+					"Effect": "Allow"
 				}
 			]
 		}`),

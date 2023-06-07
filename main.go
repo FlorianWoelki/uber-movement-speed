@@ -242,7 +242,7 @@ func main() {
 	// Creates the API Gateway endpoint for the kinesis data forwarder lambda function.
 	log.Println("Creating API Gateway endpoint for `KinesisDataForwarder` lambda function...")
 	err = apiGateway.CreateEndpoint(apiGatewayId, awsService.EndpointOptions{
-		Path:   "/kinesis",
+		Path:   "kinesis-data-forwarder",
 		Method: "POST",
 		Uri:    kinesisDataForwarderARN,
 	})

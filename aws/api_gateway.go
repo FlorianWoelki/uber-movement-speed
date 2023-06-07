@@ -2,7 +2,6 @@ package aws
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/apigatewayv2"
@@ -33,9 +32,9 @@ func NewAPIGateway(config aws.Config) *APIGateway {
 // that was created.
 func (a *APIGateway) Create(name string) (string, error) {
 	createOutput, err := a.client.CreateApi(context.TODO(), &apigatewayv2.CreateApiInput{
-		Name:         aws.String(name),
-		ProtocolType: types.ProtocolTypeHttp,
-		// RouteSelectionExpression: aws.String("$request.body.action"),
+		Name:                     aws.String(name),
+		ProtocolType:             types.ProtocolTypeWebsocket,
+		RouteSelectionExpression: aws.String("$request.body.action"),
 	})
 	if err != nil {
 		return "", err
@@ -73,23 +72,58 @@ type EndpointOptions struct {
 // an integration with the given URI, and a deployment.
 func (a *APIGateway) CreateEndpoint(id string, options EndpointOptions) error {
 	integrationOutput, err := a.client.CreateIntegration(context.TODO(), &apigatewayv2.CreateIntegrationInput{
-		ApiId:                aws.String(id),
-		IntegrationType:      types.IntegrationTypeAwsProxy,
-		IntegrationMethod:    aws.String(options.Method),
-		IntegrationUri:       aws.String(options.Uri),
-		PayloadFormatVersion: aws.String("2.0"),
-		PassthroughBehavior:  types.PassthroughBehaviorWhenNoMatch,
+		ApiId:             aws.String(id),
+		IntegrationType:   types.IntegrationTypeAwsProxy,
+		IntegrationMethod: aws.String(options.Method),
+		IntegrationUri:    aws.String(options.Uri),
+		// PayloadFormatVersion: aws.String("1.0"),
+		// PassthroughBehavior:  types.PassthroughBehaviorWhenNoMatch,
 	})
 	if err != nil {
 		return err
 	}
 
 	_, err = a.client.CreateRoute(context.TODO(), &apigatewayv2.CreateRouteInput{
-		ApiId:             aws.String(id),
-		RouteKey:          aws.String(fmt.Sprintf("%s %s", options.Method, options.Path)),
-		Target:            integrationOutput.IntegrationId,
-		RequestParameters: options.RequestParameters,
-		AuthorizationType: types.AuthorizationTypeNone,
+		ApiId:                            aws.String(id),
+		RouteKey:                         aws.String(options.Path),
+		Target:                           integrationOutput.IntegrationId,
+		RouteResponseSelectionExpression: aws.String("$default"),
+		// RouteKey:          aws.String(fmt.Sprintf("%s %s", options.Method, options.Path)),
+		// RequestParameters: options.RequestParameters,
+		// AuthorizationType: types.AuthorizationTypeNone,
+	})
+	if err != nil {
+		return err
+	}
+
+	// Create a route for the `$connect` websocket event which is used for opening the
+	// connection.
+	_, err = a.client.CreateRoute(context.TODO(), &apigatewayv2.CreateRouteInput{
+		ApiId:    aws.String(id),
+		RouteKey: aws.String("$connect"),
+		Target:   integrationOutput.IntegrationId,
+	})
+	if err != nil {
+		return err
+	}
+
+	// Create a route for the `$disconnect` websocket event which is used for closing the
+	// connection.
+	_, err = a.client.CreateRoute(context.TODO(), &apigatewayv2.CreateRouteInput{
+		ApiId:    aws.String(id),
+		RouteKey: aws.String("$disconnect"),
+		Target:   integrationOutput.IntegrationId,
+	})
+	if err != nil {
+		return err
+	}
+
+	// Create a route for the `$default` websocket event which is used for data transfer.
+	_, err = a.client.CreateRoute(context.TODO(), &apigatewayv2.CreateRouteInput{
+		ApiId:                            aws.String(id),
+		RouteKey:                         aws.String("$default"),
+		Target:                           integrationOutput.IntegrationId,
+		RouteResponseSelectionExpression: aws.String("$default"),
 	})
 	if err != nil {
 		return err

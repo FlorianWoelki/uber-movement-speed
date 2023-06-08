@@ -12,7 +12,12 @@ def main():
         async with websockets.connect(uri) as websocket:
             print("Sending message to websocket")
             await websocket.send(
-                json.dumps({"action": "kinesis-data-forwarder", "data": "Hello World"})
+                json.dumps(
+                    {
+                        "action": "kinesis-data-forwarder",
+                        "data": {"id": "ws-id", "title": "WS book title"},
+                    }
+                )
             )
             result = await websocket.recv()
             print(f"Received message from websocket: {result}")

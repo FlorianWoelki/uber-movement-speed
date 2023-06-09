@@ -2,6 +2,7 @@ package aws
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/apigatewayv2"
@@ -28,13 +29,27 @@ func NewAPIGateway(config aws.Config) *APIGateway {
 	}
 }
 
-// Create creates an API Gateway with the given name and returns the ID of the API Gateway
-// that was created.
-func (a *APIGateway) Create(name string) (string, error) {
+// Create creates a websocket API Gateway with the given name and returns the ID of the
+// API Gateway that was created.
+func (a *APIGateway) CreateWebSocketApi(name string) (string, error) {
 	createOutput, err := a.client.CreateApi(context.TODO(), &apigatewayv2.CreateApiInput{
 		Name:                     aws.String(name),
 		ProtocolType:             types.ProtocolTypeWebsocket,
 		RouteSelectionExpression: aws.String("$request.body.action"),
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return aws.ToString(createOutput.ApiId), nil
+}
+
+// Create creates a HTTP API Gateway with the given name and returns the ID of the
+// API Gateway that was created.
+func (a *APIGateway) CreateHTTPApi(name string) (string, error) {
+	createOutput, err := a.client.CreateApi(context.TODO(), &apigatewayv2.CreateApiInput{
+		Name:         aws.String(name),
+		ProtocolType: types.ProtocolTypeHttp,
 	})
 	if err != nil {
 		return "", err
@@ -64,20 +79,26 @@ type EndpointOptions struct {
 	// Uri is the URI of the endpoint.
 	Uri string
 	// RequestParameters are the request parameters of the endpoint.
-	RequestParameters map[string]types.ParameterConstraints
+	RequestParameters map[string]string
 }
 
-// CreateEndpoint creates an endpoint for the given API Gateway ID with the given options.
-// It creates a resource with the given path, a method with the given HTTP method,
-// an integration with the given URI, and a deployment.
-func (a *APIGateway) CreateEndpoint(id string, options EndpointOptions) error {
+// Deploy deploys the API Gateway with the given ID to the `dev` stage.
+func (a *APIGateway) Deploy(id string) error {
+	_, err := a.client.CreateDeployment(context.TODO(), &apigatewayv2.CreateDeploymentInput{
+		ApiId:     aws.String(id),
+		StageName: aws.String("dev"),
+	})
+	return err
+}
+
+// CreateWebSocket creates a websocket endpoint for the given API Gateway ID with the given
+// options.
+func (a *APIGateway) CreateWebSocket(id string, options EndpointOptions) error {
 	integrationOutput, err := a.client.CreateIntegration(context.TODO(), &apigatewayv2.CreateIntegrationInput{
 		ApiId:             aws.String(id),
 		IntegrationType:   types.IntegrationTypeAwsProxy,
 		IntegrationMethod: aws.String(options.Method),
 		IntegrationUri:    aws.String(options.Uri),
-		// PayloadFormatVersion: aws.String("1.0"),
-		// PassthroughBehavior:  types.PassthroughBehaviorWhenNoMatch,
 	})
 	if err != nil {
 		return err
@@ -88,9 +109,6 @@ func (a *APIGateway) CreateEndpoint(id string, options EndpointOptions) error {
 		RouteKey:                         aws.String(options.Path),
 		Target:                           integrationOutput.IntegrationId,
 		RouteResponseSelectionExpression: aws.String("$default"),
-		// RouteKey:          aws.String(fmt.Sprintf("%s %s", options.Method, options.Path)),
-		// RequestParameters: options.RequestParameters,
-		// AuthorizationType: types.AuthorizationTypeNone,
 	})
 	if err != nil {
 		return err
@@ -129,9 +147,28 @@ func (a *APIGateway) CreateEndpoint(id string, options EndpointOptions) error {
 		return err
 	}
 
-	_, err = a.client.CreateDeployment(context.TODO(), &apigatewayv2.CreateDeploymentInput{
-		ApiId:     aws.String(id),
-		StageName: aws.String("dev"),
+	return nil
+}
+
+// CreateEndpoint creates a REST endpoint for the given API Gateway ID with the given
+// options. It creates a resource with the given path, a method with the given HTTP method,
+// an integration with the given URI, and a deployment.
+func (a *APIGateway) CreateEndpoint(id string, options EndpointOptions) error {
+	integrationOutput, err := a.client.CreateIntegration(context.TODO(), &apigatewayv2.CreateIntegrationInput{
+		ApiId:             aws.String(id),
+		IntegrationType:   types.IntegrationTypeAwsProxy,
+		IntegrationMethod: aws.String(options.Method),
+		IntegrationUri:    aws.String(options.Uri),
+		RequestParameters: options.RequestParameters,
+	})
+	if err != nil {
+		return err
+	}
+
+	_, err = a.client.CreateRoute(context.TODO(), &apigatewayv2.CreateRouteInput{
+		ApiId:    aws.String(id),
+		RouteKey: aws.String(fmt.Sprintf("%s %s", options.Method, options.Path)),
+		Target:   integrationOutput.IntegrationId,
 	})
 	if err != nil {
 		return err

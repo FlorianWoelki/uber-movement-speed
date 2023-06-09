@@ -36,7 +36,7 @@ func (m *mockAPIGatewayClient) CreateIntegration(ctx context.Context, input *api
 	return m.createIntegrationFunc(ctx, input, opts...)
 }
 
-func TestAPIGateway_Create(t *testing.T) {
+func TestAPIGateway_CreateWebSocketApi(t *testing.T) {
 	mockClient := &mockAPIGatewayClient{
 		createApiFunc: func(ctx context.Context, input *apigatewayv2.CreateApiInput, opts ...func(*apigatewayv2.Options)) (*apigatewayv2.CreateApiOutput, error) {
 			if aws.ToString(input.Name) != "test-api" {
@@ -52,7 +52,33 @@ func TestAPIGateway_Create(t *testing.T) {
 		client: mockClient,
 	}
 
-	id, err := apiGatewayClient.Create("test-api")
+	id, err := apiGatewayClient.CreateWebSocketApi("test-api")
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	if id != "test-api" {
+		t.Errorf("unexpected api id: %s", id)
+	}
+}
+
+func TestAPIGateway_CreateHTTPApi(t *testing.T) {
+	mockClient := &mockAPIGatewayClient{
+		createApiFunc: func(ctx context.Context, input *apigatewayv2.CreateApiInput, opts ...func(*apigatewayv2.Options)) (*apigatewayv2.CreateApiOutput, error) {
+			if aws.ToString(input.Name) != "test-api" {
+				t.Errorf("unexpected api name: %s", aws.ToString(input.Name))
+			}
+			return &apigatewayv2.CreateApiOutput{
+				ApiId: aws.String("test-api"),
+			}, nil
+		},
+	}
+
+	apiGatewayClient := &APIGateway{
+		client: mockClient,
+	}
+
+	id, err := apiGatewayClient.CreateHTTPApi("test-api")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -127,6 +153,76 @@ func TestAPIGateway_CreateEndpoint(t *testing.T) {
 		Method: "GET",
 		Uri:    "http://example.com",
 	})
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestAPIGateway_CreateWebSocket(t *testing.T) {
+	mockClient := &mockAPIGatewayClient{
+		createDeploymentFunc: func(ctx context.Context, input *apigatewayv2.CreateDeploymentInput, opts ...func(*apigatewayv2.Options)) (*apigatewayv2.CreateDeploymentOutput, error) {
+			if aws.ToString(input.ApiId) != "test-api" {
+				t.Errorf("unexpected api id: %s", aws.ToString(input.ApiId))
+			}
+			return &apigatewayv2.CreateDeploymentOutput{}, nil
+		},
+		createRouteFunc: func(ctx context.Context, input *apigatewayv2.CreateRouteInput, opts ...func(*apigatewayv2.Options)) (*apigatewayv2.CreateRouteOutput, error) {
+			if aws.ToString(input.ApiId) != "test-api" {
+				t.Errorf("unexpected api id: %s", aws.ToString(input.ApiId))
+			}
+			if aws.ToString(input.RouteKey) != "$connect" && aws.ToString(input.RouteKey) != "$disconnect" && aws.ToString(input.RouteKey) != "$default" && aws.ToString(input.RouteKey) != "hello" {
+				t.Errorf("unexpected route key: %s", aws.ToString(input.RouteKey))
+			}
+			return &apigatewayv2.CreateRouteOutput{
+				RouteId: aws.String("test-route"),
+			}, nil
+		},
+		createIntegrationFunc: func(ctx context.Context, input *apigatewayv2.CreateIntegrationInput, opts ...func(*apigatewayv2.Options)) (*apigatewayv2.CreateIntegrationOutput, error) {
+			if aws.ToString(input.ApiId) != "test-api" {
+				t.Errorf("unexpected api id: %s", aws.ToString(input.ApiId))
+			}
+			if input.IntegrationType != "AWS_PROXY" {
+				t.Errorf("unexpected integration type: %s", input.IntegrationType)
+			}
+			if aws.ToString(input.IntegrationUri) != "http://example.com" {
+				t.Errorf("unexpected integration uri: %s", aws.ToString(input.IntegrationUri))
+			}
+			if aws.ToString(input.IntegrationMethod) != "POST" {
+				t.Errorf("unexpected integration method: %s", aws.ToString(input.IntegrationMethod))
+			}
+			return &apigatewayv2.CreateIntegrationOutput{}, nil
+		},
+	}
+
+	apiGatewayClient := &APIGateway{
+		client: mockClient,
+	}
+
+	err := apiGatewayClient.CreateWebSocket("test-api", EndpointOptions{
+		Path:   "hello",
+		Method: "POST",
+		Uri:    "http://example.com",
+	})
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestAPIGateway_CreateDeployment(t *testing.T) {
+	mockClient := &mockAPIGatewayClient{
+		createDeploymentFunc: func(ctx context.Context, input *apigatewayv2.CreateDeploymentInput, opts ...func(*apigatewayv2.Options)) (*apigatewayv2.CreateDeploymentOutput, error) {
+			if aws.ToString(input.ApiId) != "test-api" {
+				t.Errorf("unexpected api id: %s", aws.ToString(input.ApiId))
+			}
+			return &apigatewayv2.CreateDeploymentOutput{}, nil
+		},
+	}
+
+	apiGatewayClient := &APIGateway{
+		client: mockClient,
+	}
+
+	err := apiGatewayClient.Deploy("test-api")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

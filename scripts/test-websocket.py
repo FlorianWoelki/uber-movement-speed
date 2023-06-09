@@ -1,5 +1,4 @@
 import json
-import boto3
 import asyncio
 import websockets
 

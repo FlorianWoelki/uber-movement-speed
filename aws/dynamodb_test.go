@@ -10,12 +10,13 @@ import (
 )
 
 type mockDynamoDBClient struct {
-	createTableFunc   func(context.Context, *dynamodb.CreateTableInput, ...func(*dynamodb.Options)) (*dynamodb.CreateTableOutput, error)
-	updateTableFunc   func(context.Context, *dynamodb.UpdateTableInput, ...func(*dynamodb.Options)) (*dynamodb.UpdateTableOutput, error)
-	deleteTableFunc   func(context.Context, *dynamodb.DeleteTableInput, ...func(*dynamodb.Options)) (*dynamodb.DeleteTableOutput, error)
-	putItemFunc       func(context.Context, *dynamodb.PutItemInput, ...func(*dynamodb.Options)) (*dynamodb.PutItemOutput, error)
-	deleteItemFunc    func(context.Context, *dynamodb.DeleteItemInput, ...func(*dynamodb.Options)) (*dynamodb.DeleteItemOutput, error)
-	describeTableFunc func(context.Context, *dynamodb.DescribeTableInput, ...func(*dynamodb.Options)) (*dynamodb.DescribeTableOutput, error)
+	createTableFunc      func(context.Context, *dynamodb.CreateTableInput, ...func(*dynamodb.Options)) (*dynamodb.CreateTableOutput, error)
+	updateTableFunc      func(context.Context, *dynamodb.UpdateTableInput, ...func(*dynamodb.Options)) (*dynamodb.UpdateTableOutput, error)
+	deleteTableFunc      func(context.Context, *dynamodb.DeleteTableInput, ...func(*dynamodb.Options)) (*dynamodb.DeleteTableOutput, error)
+	putItemFunc          func(context.Context, *dynamodb.PutItemInput, ...func(*dynamodb.Options)) (*dynamodb.PutItemOutput, error)
+	deleteItemFunc       func(context.Context, *dynamodb.DeleteItemInput, ...func(*dynamodb.Options)) (*dynamodb.DeleteItemOutput, error)
+	describeTableFunc    func(context.Context, *dynamodb.DescribeTableInput, ...func(*dynamodb.Options)) (*dynamodb.DescribeTableOutput, error)
+	executeStatementFunc func(context.Context, *dynamodb.ExecuteStatementInput, ...func(*dynamodb.Options)) (*dynamodb.ExecuteStatementOutput, error)
 }
 
 func (m *mockDynamoDBClient) CreateTable(ctx context.Context, params *dynamodb.CreateTableInput, optFns ...func(*dynamodb.Options)) (*dynamodb.CreateTableOutput, error) {
@@ -40,6 +41,10 @@ func (m *mockDynamoDBClient) DeleteItem(ctx context.Context, params *dynamodb.De
 
 func (m *mockDynamoDBClient) DescribeTable(ctx context.Context, params *dynamodb.DescribeTableInput, optFns ...func(*dynamodb.Options)) (*dynamodb.DescribeTableOutput, error) {
 	return m.describeTableFunc(ctx, params, optFns...)
+}
+
+func (m *mockDynamoDBClient) ExecuteStatement(ctx context.Context, params *dynamodb.ExecuteStatementInput, optFns ...func(*dynamodb.Options)) (*dynamodb.ExecuteStatementOutput, error) {
+	return m.executeStatementFunc(ctx, params, optFns...)
 }
 
 func TestDynamoDB_CreateTable(t *testing.T) {
@@ -149,5 +154,32 @@ func TestDynamoDB_DeleteItem(t *testing.T) {
 	err := dynamoDB.DeleteItem("test", map[string]types.AttributeValue{"test": &types.AttributeValueMemberS{Value: "test"}})
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestDynamoDB_GetItemById(t *testing.T) {
+	mockClient := &mockDynamoDBClient{
+		executeStatementFunc: func(ctx context.Context, params *dynamodb.ExecuteStatementInput, optFns ...func(*dynamodb.Options)) (*dynamodb.ExecuteStatementOutput, error) {
+			return &dynamodb.ExecuteStatementOutput{
+				Items: []map[string]types.AttributeValue{
+					{
+						"test": &types.AttributeValueMemberS{Value: "test"},
+					},
+				},
+			}, nil
+		},
+	}
+
+	dynamoDB := &DynamoDB{
+		client: mockClient,
+	}
+
+	item, err := dynamoDB.GetItemById("test", "test")
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	if item["test"].(*types.AttributeValueMemberS).Value != "test" {
+		t.Errorf("unexpected item: %v", item)
 	}
 }

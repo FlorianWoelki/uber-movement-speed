@@ -2,6 +2,7 @@ package aws
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
@@ -15,6 +16,7 @@ type dynamoDBAPI interface {
 	DeleteItem(ctx context.Context, params *dynamodb.DeleteItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.DeleteItemOutput, error)
 	UpdateTable(ctx context.Context, params *dynamodb.UpdateTableInput, optFns ...func(*dynamodb.Options)) (*dynamodb.UpdateTableOutput, error)
 	DescribeTable(ctx context.Context, params *dynamodb.DescribeTableInput, optFns ...func(*dynamodb.Options)) (*dynamodb.DescribeTableOutput, error)
+	ExecuteStatement(ctx context.Context, params *dynamodb.ExecuteStatementInput, optFns ...func(*dynamodb.Options)) (*dynamodb.ExecuteStatementOutput, error)
 }
 
 // DynamoDB is a wrapper around the AWS DynamoDB client.
@@ -123,4 +125,25 @@ func (d *DynamoDB) DeleteItem(name string, key map[string]types.AttributeValue) 
 	}
 
 	return nil
+}
+
+// GetItemById gets an item from the DynamoDB table with the id in the data.
+func (d *DynamoDB) GetItemById(tableName, id string) (map[string]types.AttributeValue, error) {
+	result, err := d.client.ExecuteStatement(context.TODO(), &dynamodb.ExecuteStatementInput{
+		Statement: aws.String(fmt.Sprintf("SELECT * FROM %s WHERE id=?", tableName)),
+		Parameters: []types.AttributeValue{
+			&types.AttributeValueMemberS{
+				Value: id,
+			},
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(result.Items) == 0 {
+		return nil, nil
+	}
+
+	return result.Items[0], nil
 }

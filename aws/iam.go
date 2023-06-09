@@ -75,6 +75,7 @@ var policies = map[string]string{
 					"dynamodb:DeleteItem",
 					"dynamodb:UpdateTable",
 					"dynamodb:DescribeTable",
+					"dynamodb:ExecuteStatement",
 					"iam:ListRolePolicies",
 					"iam:GetRole",
 					"iam:GetRolePolicy",

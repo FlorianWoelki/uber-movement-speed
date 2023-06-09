@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -230,18 +231,55 @@ func main() {
 	// TODO: Wait for lambda function to be created.
 	log.Println("Created `KinesisDataForwarder` lambda function")
 
-	// Creates the API Gateway.
-	log.Println("Creating API Gateway...")
-	apiName := "my-kinesis-api"
-	apiGatewayId, err := apiGateway.Create(apiName)
+	// Loads the lambda zip file.
+	log.Println("Uploading `DynamoGetter` lambda zip file to S3 bucket...")
+	file, err = os.Open("services/dynamo_getter/dynamo_getter.zip")
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println("Created API Gateway")
+	defer file.Close()
+	zipFileBytes, err = io.ReadAll(file)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	// Creates the API Gateway endpoint for the kinesis data forwarder lambda function.
-	log.Println("Creating API Gateway endpoint for `KinesisDataForwarder` lambda function...")
-	err = apiGateway.CreateEndpoint(apiGatewayId, awsService.EndpointOptions{
+	// Uploads the lambda zip file to the S3 bucket.
+	err = s3.PutObject("lambda-bucket", "dynamo_getter.zip", zipFileBytes)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println("Uploaded `DynamoGetter` lambda zip file to S3 bucket")
+
+	// Creates the lambda function.
+	log.Println("Creating `DynamoGetter` lambda function...")
+	dynamoGetterARN, err := lambda.CreateGo("DynamoGetter", "lambda-bucket", "dynamo_getter.zip")
+	if err != nil {
+		log.Fatal(err)
+	}
+	// TODO: Wait for lambda function to be created.
+	log.Println("Created `DynamoGetter` lambda function")
+
+	// Creates the websocket API Gateway.
+	log.Println("Creating websocket API Gateway...")
+	apiName := "my-kinesis-api"
+	websocketApiGatewayId, err := apiGateway.CreateWebSocketApi(apiName)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println("Created websocket API Gateway")
+
+	// Creates the HTTP API Gateway.
+	log.Println("Creating http API Gateway...")
+	apiName = "dynamo-getter"
+	httpApiGatewayId, err := apiGateway.CreateHTTPApi(apiName)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println("Created http API Gateway")
+
+	// Creates the websocket API Gateway endpoint for the kinesis data forwarder lambda function.
+	log.Println("Creating websocket API Gateway endpoint for `KinesisDataForwarder` lambda function...")
+	err = apiGateway.CreateWebSocket(websocketApiGatewayId, awsService.EndpointOptions{
 		Path:   "kinesis-data-forwarder",
 		Method: "POST",
 		Uri:    kinesisDataForwarderARN,
@@ -249,8 +287,35 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println("Created API Gateway endpoint for `KinesisDataForwarder` lambda function")
-	log.Println("API Gateway ID:", apiGatewayId)
+	log.Println("Created websocket API Gateway endpoint for `KinesisDataForwarder` lambda function")
+
+	// Creates the REST API Gateway endpoint for the dynamo getter lambda function.
+	log.Println("Creating REST API Gateway endpoint for `DynamoGetter` lambda function...")
+	err = apiGateway.CreateEndpoint(httpApiGatewayId, awsService.EndpointOptions{
+		Path:   "/dynamo-getter",
+		Method: "GET",
+		Uri:    fmt.Sprintf("arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/%s/invocations", dynamoGetterARN),
+		RequestParameters: map[string]string{
+			"method.request.querystring.id": "true",
+		},
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println("Created REST API Gateway endpoint for `DynamoGetter` lambda function")
+
+	log.Println("Deploying API Gateway...")
+	err = apiGateway.Deploy(websocketApiGatewayId)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = apiGateway.Deploy(httpApiGatewayId)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Println("Deployed websocket API Gateway with ID:", websocketApiGatewayId)
+	log.Println("Deployed http API Gateway with ID:", httpApiGatewayId)
 
 	// Creates the kinesis stream.
 	log.Println("Creating kinesis stream...")

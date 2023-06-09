@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"time"
@@ -146,7 +146,7 @@ func main() {
 		log.Fatal(err)
 	}
 	defer file.Close()
-	scriptFileBytes, err := ioutil.ReadAll(file)
+	scriptFileBytes, err := io.ReadAll(file)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -181,7 +181,7 @@ func main() {
 		log.Fatal(err)
 	}
 	defer file.Close()
-	zipFileBytes, err := ioutil.ReadAll(file)
+	zipFileBytes, err := io.ReadAll(file)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -209,7 +209,7 @@ func main() {
 		log.Fatal(err)
 	}
 	defer file.Close()
-	zipFileBytes, err = ioutil.ReadAll(file)
+	zipFileBytes, err = io.ReadAll(file)
 	if err != nil {
 		log.Fatal(err)
 	}

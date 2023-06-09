@@ -3,7 +3,8 @@ import time
 import boto3
 from datetime import datetime
 from pyspark.context import SparkContext
-from pyspark.sql.functions import col, upper
+from pyspark.sql.functions import col
+from pyspark.sql.types import IntegerType, FloatType, LongType
 from awsglue.utils import getResolvedOptions
 from awsglue.dynamicframe import DynamicFrame
 from awsglue.context import GlueContext
@@ -131,8 +132,20 @@ def main():
         f"Read {df.count()} rows from {source_path}.",
     )
 
-    df_transformed = df.withColumn("id", col("id")).withColumn(
-        "title", upper(col("title"))
+    df_transformed = (
+        df.withColumn("id", col("id"))
+        .withColumn("year", col("year").cast(IntegerType()))
+        .withColumn("month", col("month").cast(IntegerType()))
+        .withColumn("day", col("day").cast(IntegerType()))
+        .withColumn("hour", col("hour").cast(IntegerType()))
+        .withColumn("utc_timestamp", col("utc_timestamp"))
+        .withColumn("start_junction_id", col("start_junction_id"))
+        .withColumn("end_junction_id", col("end_junction_id"))
+        .withColumn("osm_way_id", col("osm_way_id").cast(LongType()))
+        .withColumn("osm_start_node_id", col("osm_start_node_id").cast(LongType()))
+        .withColumn("osm_end_node_id", col("osm_end_node_id").cast(LongType()))
+        .withColumn("speed_mph_mean", col("speed_mph_mean").cast(FloatType()))
+        .withColumn("speed_mph_stddev", col("speed_mph_stddev").cast(FloatType()))
     )
 
     log(
@@ -170,12 +183,37 @@ def main():
 
     rows = df_transformed.toDF().collect()
     for row in rows:
-        parameters = [{"name": "title", "value": {"stringValue": row.title}}]
+        parameters = [
+            {"name": "year", "value": {"longValue": row["year"]}},
+            {"name": "month", "value": {"longValue": row["month"]}},
+            {"name": "day", "value": {"longValue": row["day"]}},
+            {"name": "hour", "value": {"longValue": row["hour"]}},
+            {"name": "utc_timestamp", "value": {"stringValue": row["utc_timestamp"]}},
+            {
+                "name": "start_junction_id",
+                "value": {"stringValue": row["start_junction_id"]},
+            },
+            {
+                "name": "end_junction_id",
+                "value": {"stringValue": row["end_junction_id"]},
+            },
+            {"name": "osm_way_id", "value": {"longValue": row["osm_way_id"]}},
+            {
+                "name": "osm_start_node_id",
+                "value": {"longValue": row["osm_start_node_id"]},
+            },
+            {"name": "osm_end_node_id", "value": {"longValue": row["osm_end_node_id"]}},
+            {"name": "speed_mph_mean", "value": {"doubleValue": row["speed_mph_mean"]}},
+            {
+                "name": "speed_mph_stddev",
+                "value": {"doubleValue": row["speed_mph_stddev"]},
+            },
+        ]
         aurora_client.execute_statement(
             resourceArn=cluster_arn,
             secretArn=secret_arn,
             database="test",
-            sql="INSERT INTO books (title) VALUES (:title)",
+            sql="INSERT INTO street_segment_speeds (year, month, day, hour, utc_timestamp, start_junction_id, end_junction_id, osm_way_id, osm_start_node_id, osm_end_node_id, speed_mph_mean, speed_mph_stddev) VALUES (:year, :month, :day, :hour, :utc_timestamp, :start_junction_id, :end_junction_id, :osm_way_id, :osm_start_node_id, :osm_end_node_id, :speed_mph_mean, :speed_mph_stddev)",
             parameters=parameters,
         )
 

@@ -19,9 +19,20 @@ import (
 	awsService "github.com/florianwoelki/uber-movement-speed/aws"
 )
 
-type Book struct {
-	Id    string `json:"id" dynamodbav:"id"`
-	Title string `json:"title" dynamodbav:"title"`
+type SegmentSpeed struct {
+	Id              string  `json:"id" dynamodbav:"id"`
+	Year            int     `json:"year" dynamodbav:"year"`
+	Month           int     `json:"month" dynamodbav:"month"`
+	Day             int     `json:"day" dynamodbav:"day"`
+	Hour            int     `json:"hour" dynamodbav:"hour"`
+	UtcTimestamp    string  `json:"utc_timestamp" dynamodbav:"utc_timestamp"`
+	StartJunctionId string  `json:"start_junction_id" dynamodbav:"start_junction_id"`
+	EndJunctionId   string  `json:"end_junction_id" dynamodbav:"end_junction_id"`
+	OsmWayId        int64   `json:"osm_way_id" dynamodbav:"osm_way_id"`
+	OsmStartNodeId  int64   `json:"osm_start_node_id" dynamodbav:"osm_start_node_id"`
+	OsmEndNodeId    int64   `json:"osm_end_node_id" dynamodbav:"osm_end_node_id"`
+	SpeedMphMean    float32 `json:"speed_mph_mean" dynamodbav:"speed_mph_mean"`
+	SpeedMphStddev  float32 `json:"speed_mph_stddev" dynamodbav:"speed_mph_stddev"`
 }
 
 var (
@@ -30,7 +41,7 @@ var (
 )
 
 var (
-	dataBatch []Book
+	dataBatch []SegmentSpeed
 	batchSize = 1000
 )
 
@@ -41,12 +52,8 @@ var (
 )
 
 func init() {
-	// tableName = os.Getenv("TABLE_NAME")
-	tableName = "books"
+	tableName = "street_segment_speeds"
 	s3BucketName = "raw-data"
-	if tableName == "" {
-		log.Fatal("missing environment variable`TABLE_NAME`")
-	}
 
 	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
 		if service == s3.ServiceID {
@@ -84,14 +91,14 @@ func handleRequest(ctx context.Context, event events.KinesisEvent) error {
 		kinesisRecord := record.Kinesis
 		dataBytes := kinesisRecord.Data
 
-		var book Book
-		err := json.Unmarshal(dataBytes, &book)
+		var segmentSpeed SegmentSpeed
+		err := json.Unmarshal(dataBytes, &segmentSpeed)
 		if err != nil {
 			return err
 		}
 
 		// Prepare the item to be stored in the DynamoDB table.
-		item, err := attributevalue.MarshalMap(book)
+		item, err := attributevalue.MarshalMap(segmentSpeed)
 		if err != nil {
 			return err
 		}
@@ -105,7 +112,7 @@ func handleRequest(ctx context.Context, event events.KinesisEvent) error {
 		log.Println("Successfully put item into dynamodb table")
 
 		// Accumulate data for batch upload to S3.
-		dataBatch = append(dataBatch, book)
+		dataBatch = append(dataBatch, segmentSpeed)
 
 		if len(dataBatch) > batchSize {
 			if err := uploadToS3(dataBatch); err != nil {
@@ -131,7 +138,7 @@ func flushBatch() {
 
 // uploadToS3 uploads the given data to the S3 bucket as a CSV file and partitions it by
 // the current time.
-func uploadToS3(data []Book) error {
+func uploadToS3(data []SegmentSpeed) error {
 	// Gets the current time to construct the partition path.
 	currentTime := time.Now()
 	year := currentTime.Format("2006")
@@ -147,13 +154,29 @@ func uploadToS3(data []Book) error {
 	writer := csv.NewWriter(csvBuffer)
 
 	// Write headers to CSV file.
-	headers := []string{"id", "title"}
+	headers := []string{"id", "year", "month", "day", "hour", "utc_timestamp", "start_junction_id", "end_junction_id", "osm_way_id", "osm_start_node_id", "osm_end_node_id", "speed_mph_mean", "speed_mph_stddev"}
 	if err := writer.Write(headers); err != nil {
 		return err
 	}
 
-	for _, book := range data {
-		if err := writer.Write([]string{book.Id, book.Title}); err != nil {
+	for _, segmentSpeed := range data {
+		if err := writer.Write(
+			[]string{
+				segmentSpeed.Id,
+				fmt.Sprint(segmentSpeed.Year),
+				fmt.Sprint(segmentSpeed.Month),
+				fmt.Sprint(segmentSpeed.Day),
+				fmt.Sprint(segmentSpeed.Hour),
+				segmentSpeed.UtcTimestamp,
+				segmentSpeed.StartJunctionId,
+				segmentSpeed.EndJunctionId,
+				fmt.Sprint(segmentSpeed.OsmWayId),
+				fmt.Sprint(segmentSpeed.OsmStartNodeId),
+				fmt.Sprint(segmentSpeed.OsmEndNodeId),
+				fmt.Sprint(segmentSpeed.SpeedMphMean),
+				fmt.Sprint(segmentSpeed.SpeedMphStddev),
+			},
+		); err != nil {
 			return err
 		}
 	}

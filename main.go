@@ -277,7 +277,7 @@ func main() {
 
 	// Create dynamodb table.
 	log.Println("Creating dynamodb table...")
-	err = dynamodb.CreateTable("books")
+	err = dynamodb.CreateTable("street_segment_speeds")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -310,9 +310,9 @@ func main() {
 	log.Println("Aurora DB Cluster is available")
 
 	log.Println("Creating Aurora DB Cluster Endpoint...")
-	// Creates the table for the Aurora DB. Changing `books` requires a change in
+	// Creates the table for the Aurora DB. Changing `street_segment_speeds` requires a change in
 	// `services/glue/raw_data_etl.py` as well.
-	_, err = aurora.ExecuteStatement("test", clusterARN, secretARN, "CREATE TABLE books (id SERIAL PRIMARY KEY, title VARCHAR(100))")
+	_, err = aurora.ExecuteStatement("test", clusterARN, secretARN, "CREATE TABLE street_segment_speeds (id SERIAL PRIMARY KEY, year INT, month INT, day INT, hour INT, utc_timestamp VARCHAR(100), start_junction_id VARCHAR(200), end_junction_id VARCHAR(200), osm_way_id BIGINT, osm_start_node_id BIGINT, osm_end_node_id BIGINT, speed_mph_mean FLOAT, speed_mph_stddev FLOAT)")
 	if err != nil {
 		log.Fatal(err)
 	}

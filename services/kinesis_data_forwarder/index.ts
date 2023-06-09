@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid';
 import { KinesisClient, PutRecordCommand } from '@aws-sdk/client-kinesis';
 import {
   APIGatewayProxyCallbackV2,
@@ -40,10 +41,10 @@ export const handler = async (
       region: 'us-east-1',
     });
 
-    // Transform data to a base64 string.
+    // Transform data to a base64 string and add an id.
     const data = {
-      id: parsedEvent.data.id,
-      title: parsedEvent.data.title,
+      ...parsedEvent.data,
+      id: uuidv4(),
     };
     const base64Data = Buffer.from(JSON.stringify(data));
 

@@ -13,9 +13,11 @@
   "devDependencies": {
     "@types/aws-lambda": "^8.10.115",
     "@types/node": "^20.2.5",
+    "@types/uuid": "^9.0.2",
     "esbuild": "^0.17.19"
   },
   "dependencies": {
-    "@aws-sdk/client-kinesis": "^3.348.0"
+    "@aws-sdk/client-kinesis": "^3.348.0",
+    "uuid": "^9.0.0"
   }
 }

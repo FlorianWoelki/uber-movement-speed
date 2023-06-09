@@ -2,6 +2,11 @@ import sys
 from datetime import datetime, timedelta
 import random
 import time
+import json
+import asyncio
+import websockets
+
+url = "ws://localhost:4510"
 
 # Sample data for street segment speeds.
 segment_speeds = {
@@ -108,22 +113,29 @@ def get_speed(segment: str, time_interval: float) -> int:
     return None
 
 
-def send_speed_updates(time_interval: float) -> None:
+async def send_speed_updates(time_interval: float) -> None:
     """
     Simulates sending real-time speed updates for street segments.
-    Continuously generates speed updates and prints the current speed for each segment.
+    Continuously generates speed updates, prints the current speed for each segment, and
+    sends the speed updates to the localstack server.
 
     Args:
         time_interval (float): The time interval between speed updates in seconds.
     """
-    while True:
-        for segment, _ in segment_speeds.items():
-            speed_update = get_speed(segment, time_interval)
-            if speed_update is not None:
-                print(speed_update)
-            else:
-                print("Speed information not available for the given segment.")
-        time.sleep(time_interval)
+    async with websockets.connect(url) as websocket:
+        while True:
+            for segment, _ in segment_speeds.items():
+                speed_update = get_speed(segment, time_interval)
+                if speed_update is not None:
+                    await websocket.send(
+                        json.dumps(
+                            {"action": "kinesis-data-forwarder", "data": speed_update}
+                        )
+                    )
+                    print(speed_update)
+                else:
+                    print("Speed information not available for the given segment.")
+            time.sleep(time_interval)
 
 
 if __name__ == "__main__":
@@ -139,4 +151,4 @@ if __name__ == "__main__":
         print("Invalid time interval. Please enter a positive number.")
         sys.exit(1)
 
-    send_speed_updates(time_interval)
+    asyncio.get_event_loop().run_until_complete(send_speed_updates(time_interval))

@@ -87,6 +87,16 @@ def log(logs: boto3.client, log_group_name: str, log_stream_name: str, message: 
 
 
 def get_db_and_secret_arns(identifier: str, secret_name: str) -> tuple[str, str]:
+    """
+    Gets the ARNs of the given RDS cluster and secret.
+
+    Args:
+        identifier (str): The identifier of the RDS cluster.
+        secret_name (str): The name of the secret.
+
+    Returns:
+        tuple[str, str]: The ARNs of the RDS cluster and secret.
+    """
     db_client = boto3.client("rds", endpoint_url=endpoint_url)
     clusters = db_client.describe_db_clusters(DBClusterIdentifier=identifier)
     db_cluster_arn = clusters["DBClusters"][0]["DBClusterArn"]

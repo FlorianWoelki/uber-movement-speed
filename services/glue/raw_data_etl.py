@@ -58,8 +58,15 @@ def create_log_group(log_group_name: str, log_stream_name: str) -> boto3.client:
         boto3.client: The logs client.
     """
     logs = boto3.client("logs", endpoint_url=endpoint_url)
-    logs.create_log_group(logGroupName=log_group_name)
-    logs.create_log_stream(logGroupName=log_group_name, logStreamName=log_stream_name)
+    try:
+        logs.create_log_group(logGroupName=log_group_name)
+        logs.create_log_stream(
+            logGroupName=log_group_name, logStreamName=log_stream_name
+        )
+    except logs.exceptions.ResourceAlreadyExistsException:
+        print("Log group or log stream already exists, skip creating.")
+        pass
+
     return logs
 
 

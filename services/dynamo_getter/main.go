@@ -60,6 +60,10 @@ func handleRequest(ctx context.Context, event events.APIGatewayProxyRequest) (Dy
 		return DynamoGetterResponse{}, err
 	}
 
+	if item == nil {
+		return DynamoGetterResponse{}, fmt.Errorf("item with id %s not found", id)
+	}
+
 	return DynamoGetterResponse{
 		Item: item,
 	}, nil

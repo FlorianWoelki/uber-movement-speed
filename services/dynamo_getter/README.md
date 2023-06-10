@@ -6,7 +6,7 @@ This service is responsible for getting data from DynamoDB by the query paramete
 This service is accessible under the following GET request:
 
 ```text
-GET http://localhost:4566/restapis/a03c26f6/dev/_user_request_/dynamo-getter?id=<id>
+GET http://localhost:4566/restapis/<api-id>/dev/_user_request_/dynamo-getter?id=<id>
 ```
 
 ## Building the service

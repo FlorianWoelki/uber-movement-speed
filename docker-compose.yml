@@ -3,16 +3,37 @@ version: '3.8'
 services:
   localstack:
     container_name: '${LOCALSTACK_DOCKER_NAME-localstack_main}'
-    image: localstack/localstack-pro:latest
+    image: localstack/localstack-pro
     ports:
       - '127.0.0.1:4566:4566' # LocalStack Gateway
       - '127.0.0.1:4510-4559:4510-4559' # external services port range
+      - '127.0.0.1:53:53' # DNS config
+      - '127.0.0.1:53:53/udp' # DNS config
+      - '127.0.0.1:443:443' # LocalStack HTTPS Gateway
     environment:
       - DEBUG=${DEBUG-}
       - PERSISTENCE=${PERSISTENCE-}
-      - LAMBDA_EXECUTOR=${LAMBDA_EXECUTOR-}
+      - ENFORCE_IAM=1
+      - LOCALSTACK_API_KEY=${LOCALSTACK_API_KEY-}
       - DOCKER_HOST=unix:///var/run/docker.sock
-      - LOCALSTACK_API_KEY=${LOCALSTACK_API_KEY- }
+    networks:
+      default:
+        aliases:
+          - localhost.localstack.cloud
+          - lambda-bucket.s3.localhost.localstack.cloud
+          - raw-data.s3.localhost.localstack.cloud
+          - transformed-data.s3.localhost.localstack.cloud
     volumes:
       - '${LOCALSTACK_VOLUME_DIR:-./volume}:/var/lib/localstack'
       - '/var/run/docker.sock:/var/run/docker.sock'
+  uber-movement-speed:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      AWS_ACCESS_KEY_ID: na
+      AWS_SECRET_ACCESS_KEY: na
+      AWS_DEFAULT_REGION: us-east-1
+    depends_on:
+      localstack:
+        condition: service_healthy

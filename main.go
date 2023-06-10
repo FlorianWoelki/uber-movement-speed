@@ -87,7 +87,7 @@ func main() {
 
 		return aws.Endpoint{
 			PartitionID:   "aws",
-			URL:           "http://localhost:4566",
+			URL:           "http://localhost.localstack.cloud:4566",
 			SigningRegion: "us-east-1",
 		}, nil
 	})

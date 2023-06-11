@@ -43,6 +43,9 @@ This will start the `localstack` infrastructure and run the main file which crea
 the necessary services and connections to achieve the desired architecture. Besides that,
 it also builds the `lambda` functions and deploys them to `localstack`.
 
+You can also run the project with `docker compose up --build` but this will not remove a
+preexisting `localstack` container and might not work as expected.
+
 ### Running manually
 
 A prerequisite to running the project manually is that you **do** have the `localstack`

@@ -350,9 +350,9 @@ func main() {
 
 	// Creates the Aurora DB Cluster.
 	log.Println("Creating Aurora DB Cluster...")
-	// Changing `dbpass`, `db1`, or `test` requires a change in
+	// Changing `dbpass`, `db1`, or `uber-data` requires a change in
 	// `services/glue/raw_data_etl.py` as well.
-	cluster, secret, err := aurora.CreateDBCluster("db1", "test", "dbpass", "test")
+	cluster, secret, err := aurora.CreateDBCluster("db1", "uber-data", "dbpass", "test")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -377,7 +377,7 @@ func main() {
 	log.Println("Creating Aurora DB Cluster Endpoint...")
 	// Creates the table for the Aurora DB. Changing `street_segment_speeds` requires a change in
 	// `services/glue/raw_data_etl.py` as well.
-	_, err = aurora.ExecuteStatement("test", clusterARN, secretARN, "CREATE TABLE street_segment_speeds (id SERIAL PRIMARY KEY, year INT, month INT, day INT, hour INT, utc_timestamp VARCHAR(100), start_junction_id VARCHAR(200), end_junction_id VARCHAR(200), osm_way_id BIGINT, osm_start_node_id BIGINT, osm_end_node_id BIGINT, speed_mph_mean FLOAT, speed_mph_stddev FLOAT)")
+	_, err = aurora.ExecuteStatement("uber-data", clusterARN, secretARN, "CREATE TABLE street_segment_speeds (id SERIAL PRIMARY KEY, year INT, month INT, day INT, hour INT, utc_timestamp VARCHAR(100), start_junction_id VARCHAR(200), end_junction_id VARCHAR(200), osm_way_id BIGINT, osm_start_node_id BIGINT, osm_end_node_id BIGINT, speed_mph_mean FLOAT, speed_mph_stddev FLOAT)")
 	if err != nil {
 		log.Fatal(err)
 	}

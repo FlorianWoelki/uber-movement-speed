@@ -15,6 +15,6 @@ SECRET_ARN=$(echo $SECRET | jq -r '.ARN')
 aws --endpoint-url=http://localhost:4566 rds-data execute-statement \
     --resource-arn $CLUSTER_ARN \
     --secret-arn $SECRET_ARN \
-    --database test \
+    --database uber-data \
     --sql "SELECT * FROM street_segment_speeds" \
     --output json

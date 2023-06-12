@@ -229,7 +229,7 @@ def main():
         aurora_client.execute_statement(
             resourceArn=cluster_arn,
             secretArn=secret_arn,
-            database="test",
+            database="uber-data",
             sql="INSERT INTO street_segment_speeds (year, month, day, hour, utc_timestamp, start_junction_id, end_junction_id, osm_way_id, osm_start_node_id, osm_end_node_id, speed_mph_mean, speed_mph_stddev) VALUES (:year, :month, :day, :hour, :utc_timestamp, :start_junction_id, :end_junction_id, :osm_way_id, :osm_start_node_id, :osm_end_node_id, :speed_mph_mean, :speed_mph_stddev)",
             parameters=parameters,
         )
